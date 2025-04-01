@@ -1,0 +1,35 @@
+Host 192.168.71.192
+   User victor
+   IdentityFile ~/.ssh/id_rsa_mobly
+
+Host 192.168.70.81
+   HostName 192.168.70.81
+   User victor-vieira
+
+Host MV_GOIS
+   HostName 50.30.32.6
+   User root
+   IdentityFile ~/.ssh/id_ed25519
+
+Host MACBOOK_PERSON_CASA
+   HostName 192.168.101.16
+   User victorgois
+   IdentityFile ~/.ssh/id_ed25519
+
+Host bitbucket.org-work
+   HostName bitbucket.org
+   User git
+   IdentityFile ~/.ssh/id_rsa_mobly
+   IdentitiesOnly yes
+
+Host bitbucket.org-personal
+   HostName bitbucket.org
+   User git
+   IdentityFile ~/.ssh/id_ed25519
+   IdentitiesOnly yes
+
+Host github-pr
+  HostName github.com
+  User pfvlare
+  IdentityFile ~/.ssh/ssh_lare
+  IdentitiesOnly yes
