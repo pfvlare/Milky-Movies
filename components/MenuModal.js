@@ -1,8 +1,15 @@
 import React from "react";
-import { Modal, TouchableOpacity, View, Text, Pressable } from "react-native";
+import {
+  Modal,
+  TouchableOpacity,
+  View,
+  Text,
+  Pressable,
+  TouchableWithoutFeedback,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
-export default function MenuModal({ visible, onClose }) {
+export default function MenuModal({ visible, onClose, trigger }) {
   const navigation = useNavigation();
 
   const goTo = (screen) => {
@@ -15,19 +22,24 @@ export default function MenuModal({ visible, onClose }) {
       <TouchableOpacity
         className="flex-1 justify-end bg-black/50"
         activeOpacity={1}
-        onPress={onClose}
+        onPress={() => {
+          onClose?.();
+          trigger?.();
+        }}
       >
-        <View className="bg-neutral-900 p-4 rounded-t-3xl">
-          <Pressable onPress={() => goTo("Home")} className="mb-4">
-            <Text className="text-white text-lg">🎬 Home</Text>
-          </Pressable>
-          <Pressable onPress={() => goTo("Favorites")} className="mb-4">
-            <Text className="text-white text-lg">⭐ Favoritos</Text>
-          </Pressable>
-          <Pressable onPress={() => goTo("Profile")}>
-            <Text className="text-white text-lg">👤 Perfil</Text>
-          </Pressable>
-        </View>
+        <TouchableWithoutFeedback>
+          <View className="bg-neutral-900 p-4 rounded-t-3xl">
+            <Pressable onPress={() => goTo("Home")} className="mb-4">
+              <Text className="text-white text-lg">🎬 Home</Text>
+            </Pressable>
+            <Pressable onPress={() => goTo("Favorites")} className="mb-4">
+              <Text className="text-white text-lg">⭐ Favoritos</Text>
+            </Pressable>
+            <Pressable onPress={() => goTo("Profile")}>
+              <Text className="text-white text-lg">👤 Perfil</Text>
+            </Pressable>
+          </View>
+        </TouchableWithoutFeedback>
       </TouchableOpacity>
     </Modal>
   );
