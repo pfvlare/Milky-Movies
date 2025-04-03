@@ -47,7 +47,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <AppLayout showMenu={false}>
-      <SafeAreaView className="flex-1 bg-neutral-900 justify-center px-6">
+      <SafeAreaView className="flex-1 bg-neutral-900 justify-center">
         {/* Título */}
         <Text className="text-white text-4xl font-bold text-center mb-2">
           <Text className="text-pink-400">M</Text>ilky{" "}
@@ -55,51 +55,53 @@ export default function LoginScreen({ navigation }) {
         </Text>
         <Text className="text-gray-400 text-center mb-6">Login</Text>
 
-        {/* Email */}
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, value } }) => (
-            <TextInput
-              placeholder="Email"
-              placeholderTextColor="gray"
-              className="bg-neutral-800 text-white p-4 rounded-xl mb-2"
-              onChangeText={onChange}
-              value={value}
-              autoCapitalize="none"
-            />
+        <View className="px-6">
+          {/* Email */}
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                placeholder="Email"
+                placeholderTextColor="gray"
+                className="bg-neutral-800 text-white p-4 rounded-xl mb-2"
+                onChangeText={onChange}
+                value={value}
+                autoCapitalize="none"
+              />
+            )}
+          />
+          {errors.email && (
+            <Text className="text-red-400 mb-2">{errors.email.message}</Text>
           )}
-        />
-        {errors.email && (
-          <Text className="text-red-400 mb-2">{errors.email.message}</Text>
-        )}
 
-        {/* Senha */}
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, value } }) => (
-            <TextInput
-              placeholder="Senha"
-              placeholderTextColor="gray"
-              secureTextEntry
-              className="bg-neutral-800 text-white p-4 rounded-xl mb-4"
-              onChangeText={onChange}
-              value={value}
-            />
+          {/* Senha */}
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                placeholder="Senha"
+                placeholderTextColor="gray"
+                secureTextEntry
+                className="bg-neutral-800 text-white p-4 rounded-xl mb-4"
+                onChangeText={onChange}
+                value={value}
+              />
+            )}
+          />
+          {errors.password && (
+            <Text className="text-red-400 mb-2">{errors.password.message}</Text>
           )}
-        />
-        {errors.password && (
-          <Text className="text-red-400 mb-2">{errors.password.message}</Text>
-        )}
 
-        {/* Botão Entrar */}
-        <TouchableOpacity
-          className="bg-pink-500 p-4 rounded-xl mb-4"
-          onPress={handleSubmit(onSubmit)}
-        >
-          <Text className="text-white text-center font-semibold">Entrar</Text>
-        </TouchableOpacity>
+          {/* Botão Entrar */}
+          <TouchableOpacity
+            className="bg-pink-500 p-4 rounded-xl mb-4"
+            onPress={handleSubmit(onSubmit)}
+          >
+            <Text className="text-white text-center font-semibold">Entrar</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Link para Cadastro */}
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
