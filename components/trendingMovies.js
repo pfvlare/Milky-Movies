@@ -1,52 +1,57 @@
-
-import { View, Text, TouchableWithoutFeedback, Dimensions, Image } from 'react-native'
-import React from 'react'
-import Carousel from 'react-native-snap-carousel';
+import { View, Text, TouchableWithoutFeedback, ScrollView, Image, Dimensions } from 'react-native';
+import React from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { image500 } from '../api/moviedb';
+import { image500, fallBackMoviePoster } from '../api/moviedb';
 
-var {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-export default function TrendingMovies({data}) { 
+export default function TrendingMovies({ data }) {
 
-    const navigation = useNavigation(); 
-    const handleClick = (item)=>{
+    const navigation = useNavigation();
+
+    const handleClick = (item) => {
         navigation.navigate('Movie', item);
     }
 
     return (
-        <View className="mb-8">
-            <Text className="text-white text-xl mx-4 mb-5">
-                Mais Populares
-            </Text>
-            <Carousel
-                data={data}
-                renderItem={({item}) => <MovieCard item={item} handleClick={handleClick} />}
-                firstItem={1}
-                inactiveSlideOpacity={0.60}
-                sliderWidth={width}
-                itemWidth={width*0.62}
-                slideStyle={{display: 'flex', alignItems: 'center'}}
-            /> 
+        <View className="mb-8 mt-4 space-y-4">
+            <View className="mx-4 flex-row justify-between items-center">
+                <Text className="text-white text-xl">Mais Populares</Text>
+            </View>
+
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 15, paddingTop: 15 }}
+            >
+                {
+                    data.map((item, index) => (
+                        <TouchableWithoutFeedback key={index} onPress={() => handleClick(item)}>
+                            <View
+                                style={{
+                                    marginRight: 32,
+                                    alignItems: 'flex-start'
+                                }}
+                            >
+                                <Image
+                                    source={item.poster_path
+                                        ? { uri: image500(item.poster_path) }
+                                        : fallBackMoviePoster
+                                    }
+                                    className="rounded-3xl"
+                                    style={{
+                                        width: width * 0.75,
+                                        height: height * 0.55
+                                    }}
+                                />
+                                <Text className="text-neutral-300 ml-1 mt-2" style={{ paddingBottom: 10 }}>
+                                    {item.title?.length > 20 ? item.title.slice(0, 20) + '...' : item.title}
+                                </Text>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    ))
+                }
+            </ScrollView>
         </View>
-    )
-}
-
-const MovieCard = ({item, handleClick})=>{
-
-    // console.log('item.poster_path: ',item.poster_path);
-
-    return (
-        <TouchableWithoutFeedback onPress={()=> handleClick(item)}>
-            <Image
-                // source={require('../assets/images/MoviePoster1.png')}
-                source={{uri: image500(item.poster_path)}}
-                style={{
-                    width: width*0.6,
-                    height: height*0.4
-                }}
-                className="rounded-3xl"
-            />
-        </TouchableWithoutFeedback>
-    )
+    );
 }
