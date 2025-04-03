@@ -82,7 +82,6 @@ export default function PersonScreen() {
         <Loading />
       ) : (
         <View>
-          {/* Foto */}
           <View
             className="flex-row justify-center"
             style={{
@@ -105,7 +104,6 @@ export default function PersonScreen() {
             </View>
           </View>
 
-          {/* Nome e Local de Nascimento */}
           <View style={{ marginTop: 10 }}>
             <Text className="text-3xl text-white font-bold text-center">
               {person?.name}
@@ -115,9 +113,7 @@ export default function PersonScreen() {
             </Text>
           </View>
 
-          {/* Informações Rápidas */}
           <View className="mx-3 p-4 mt-6 flex-row justify-between items-center bg-neutral-700 rounded-full overflow-hidden">
-            {/* Gênero */}
             <View className="flex-1 items-center">
               <Text className="text-white font-semibold">Gênero</Text>
               <Text className="text-neutral-300 text-sm">
@@ -125,10 +121,8 @@ export default function PersonScreen() {
               </Text>
             </View>
 
-            {/* Divisor */}
             <View className="border-r-2 border-r-neutral-400 h-full mx-2" />
 
-            {/* Nascimento */}
             <View className="flex-1 items-center">
               <Text className="text-white font-semibold text-center">
                 Nascimento
@@ -138,10 +132,8 @@ export default function PersonScreen() {
               </Text>
             </View>
 
-            {/* Divisor */}
             <View className="border-r-2 border-r-neutral-400 h-full mx-2" />
 
-            {/* Popularidade */}
             <View className="flex-1 items-center">
               <Text className="text-white font-semibold">Popularidade</Text>
               <Text className="text-neutral-300 text-sm">
@@ -150,7 +142,6 @@ export default function PersonScreen() {
             </View>
           </View>
 
-          {/* Biografia */}
           <View className="my-6 mx-4 space-y-2">
             <Text className="text-white text-lg">Biografia</Text>
             <Text className="text-neutral-400 tracking-wide mt-2 text-justify leading-6">
@@ -158,7 +149,6 @@ export default function PersonScreen() {
             </Text>
           </View>
 
-          {/* Filmes */}
           <MovieList title={"Filmes"} hiddenSeeAll={true} data={personMovies} />
         </View>
       )}

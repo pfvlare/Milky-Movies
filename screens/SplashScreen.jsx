@@ -30,7 +30,7 @@ export default function SplashScreen() {
 
     const timer = setTimeout(checkAuth, 2000);
 
-    return () => clearTimeout(timer); // limpa o timer no unmount
+    return () => clearTimeout(timer);
   }, []);
 
   return (

@@ -56,7 +56,6 @@ export default function LoginScreen({ navigation }) {
         <Text className="text-gray-400 text-center mb-6">Login</Text>
 
         <View className="px-6">
-          {/* Email */}
           <Controller
             control={control}
             name="email"
@@ -75,7 +74,6 @@ export default function LoginScreen({ navigation }) {
             <Text className="text-red-400 mb-2">{errors.email.message}</Text>
           )}
 
-          {/* Senha */}
           <Controller
             control={control}
             name="password"
@@ -94,7 +92,6 @@ export default function LoginScreen({ navigation }) {
             <Text className="text-red-400 mb-2">{errors.password.message}</Text>
           )}
 
-          {/* Botão Entrar */}
           <TouchableOpacity
             className="bg-pink-500 p-4 rounded-xl mb-4"
             onPress={handleSubmit(onSubmit)}
@@ -103,7 +100,6 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Link para Cadastro */}
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
           <Text className="text-gray-400 text-center">
             Não tem conta?{" "}
@@ -111,7 +107,6 @@ export default function LoginScreen({ navigation }) {
           </Text>
         </TouchableOpacity>
 
-        {/* Botão Cancelar */}
         <TouchableOpacity
           onPress={() => navigation.replace("Splash")}
           className="mt-6"

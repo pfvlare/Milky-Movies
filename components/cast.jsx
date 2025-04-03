@@ -1,12 +1,11 @@
-
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native' 
+import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native'
 import React from 'react'
 import { fallBackPersonImage, image185 } from '../api/moviedb';
 
-export default function Cast({cast, navigation}) {
+export default function Cast({ cast, navigation }) {
 
-    let personName = 'Chris Pratt'; 
-    let characterName = 'Senhor das Estrelas'; 
+    let personName = 'Chris Pratt';
+    let characterName = 'Senhor das Estrelas';
 
     return (
         <View className="my-6">
@@ -14,15 +13,15 @@ export default function Cast({cast, navigation}) {
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{paddingHorizontal: 15}}
+                contentContainerStyle={{ paddingHorizontal: 15 }}
             >
                 {
-                    cast && cast.map((person, index)=>{
+                    cast && cast.map((person, index) => {
                         return (
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 key={index}
                                 className="mr-4 items-center"
-                                onPress={()=> navigation.navigate('Person', person)}
+                                onPress={() => navigation.navigate('Person', person)}
                             >
 
                                 <View
@@ -41,12 +40,12 @@ export default function Cast({cast, navigation}) {
 
                                 <Text className="text-white text-xs mt-1">
                                     {
-                                        person?.character.length>10? person?.character.slice(0,10)+'...': person?.character
+                                        person?.character.length > 10 ? person?.character.slice(0, 10) + '...' : person?.character
                                     }
                                 </Text>
                                 <Text className="text-neutral-400 text-xs mt-1">
                                     {
-                                        person?.original_name.length>10? person?.original_name.slice(0,10)+'...': person?.original_name
+                                        person?.original_name.length > 10 ? person?.original_name.slice(0, 10) + '...' : person?.original_name
                                     }
                                 </Text>
                             </TouchableOpacity>
@@ -56,4 +55,4 @@ export default function Cast({cast, navigation}) {
             </ScrollView>
         </View>
     )
-    }
+}

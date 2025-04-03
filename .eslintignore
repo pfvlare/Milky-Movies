@@ -1,0 +1,1 @@
+echo 'node_modules\nandroid\nios\nbabel.config.js' >> .eslintignore

@@ -1,4 +1,3 @@
-// AppLayout.js
 import React from "react";
 import { SafeAreaView } from "react-native";
 

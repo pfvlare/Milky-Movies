@@ -91,7 +91,6 @@ export default function MovieScreen() {
       contentContainerStyle={{ paddingBottom: 20 }}
       className="flex-1 bg-neutral-900"
     >
-      {/* Header */}
       <View className="w-full">
         <SafeAreaView
           className={
@@ -141,7 +140,6 @@ export default function MovieScreen() {
         )}
       </View>
 
-      {/* Detalhes */}
       <View style={{ marginTop: -(height * 0.09) }} className="space-y-3 px-4">
         <Text className="text-white text-center text-3xl font-bold tracking-wider">
           {movie?.title}
@@ -154,7 +152,6 @@ export default function MovieScreen() {
           </Text>
         )}
 
-        {/* Gêneros */}
         <View className="flex-row justify-center flex-wrap items-center gap-1 mt-1">
           {movie?.genres?.map((genre, index) => (
             <Text
@@ -167,16 +164,13 @@ export default function MovieScreen() {
           ))}
         </View>
 
-        {/* Sinopse */}
         <Text className="text-neutral-400 mt-4 text-sm leading-6 text-justify">
           {movie?.overview || "Descrição não disponível."}
         </Text>
       </View>
 
-      {/* Elenco */}
       {cast.length > 0 && <Cast navigation={navigation} cast={cast} />}
 
-      {/* Similares */}
       {similarMovies.length > 0 && (
         <MovieList
           title="Filmes Semelhantes"
