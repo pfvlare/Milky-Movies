@@ -11,7 +11,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { fallBackMoviePoster, image185 } from "../api/moviedb";
-import AppLayout from "../components/AppLayout"; // <-- se estiver usando layout global
+import AppLayout from "../components/AppLayout";
 
 const { width, height } = Dimensions.get("window");
 
