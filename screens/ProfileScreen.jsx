@@ -102,7 +102,6 @@ const styles = StyleSheet.create({
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const [user, setUser] = useState(null);
-  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -139,8 +138,12 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity onPress={handleMenu} style={styles.menuButton}>
-        <Ionicons name="menu-outline" size={28} color="white" />
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+        className='absolute top-[82px] left-6 z-50'
+      >
+        <Ionicons name="arrow-back" size={24} color="#EC4899" />
       </TouchableOpacity>
 
       <ScrollView showsVerticalScrollIndicator={false}>
