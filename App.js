@@ -1,11 +1,20 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-import Navigation from './Navigation/Navigation';
-import "./global.css"
+import { useEffect, useState } from "react";
+import Navigation from "./Navigation/Navigation";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import "./global.css";
 
 export default function App() {
-  return (
-    <Navigation />
-  );
-}
+  const [initialScreen, setInitialScreen] = useState(null);
 
+  useEffect(() => {
+    const checkUser = async () => {
+      const user = await AsyncStorage.getItem("@user");
+      setInitialScreen(user ? "Home" : "Login");
+    };
+    checkUser();
+  }, []);
+
+  if (!initialScreen) return null;
+
+  return <Navigation initialRoute={initialScreen} />;
+}

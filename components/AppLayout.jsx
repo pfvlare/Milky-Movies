@@ -1,11 +1,40 @@
 import React from "react";
-import { SafeAreaView } from "react-native";
+import {
+  View,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Platform,
+} from "react-native";
 
-export default function AppLayout({ children }) {
+import * as themeConfig from "../theme";
+const theme = themeConfig.theme;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.background,
+  },
+  safeArea: {
+    flex: 1,
+    paddingTop: Platform.OS === "ios" ? 0 : 20,
+  },
+  scrollview: {
+    flexGrow: 1,
+  },
+});
+
+export default function AppLayout({ children, showMenu = true }) {
   return (
-    <SafeAreaView className="flex-1 bg-neutral-900">
-
-      {children}
-    </SafeAreaView>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollview}
+        >
+          {children}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }

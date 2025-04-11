@@ -5,17 +5,86 @@ import {
   TextInput,
   TouchableOpacity,
   SafeAreaView,
-  Alert,
+  StyleSheet,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import AppLayout from "../components/AppLayout";
+import { Ionicons } from "@expo/vector-icons";
 
 const schema = yup.object().shape({
   email: yup.string().email("Email inválido").required("Obrigatório"),
   password: yup.string().required("Obrigatório"),
+});
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#111827",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  titleContainer: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  mainTitle: {
+    color: "white",
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  subtitle: {
+    color: "#6B7280",
+    fontSize: 18,
+  },
+  inputContainer: {
+    backgroundColor: "#374151",
+    borderRadius: 12,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  input: {
+    color: "white",
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  errorText: {
+    color: "#F44336",
+    marginBottom: 8,
+  },
+  loginButton: {
+    backgroundColor: "#EC4899",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  loginButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  registerText: {
+    color: "#6B7280",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  registerLink: {
+    color: "#EC4899",
+    fontWeight: "bold",
+  },
+  cancelButton: {
+    marginTop: 24,
+  },
+  cancelButtonText: {
+    textAlign: "center",
+    fontSize: 14,
+    color: "#4B5563",
+    textDecorationLine: "underline",
+  },
 });
 
 export default function LoginScreen({ navigation }) {
@@ -47,73 +116,77 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <AppLayout showMenu={false}>
-      <SafeAreaView className="flex-1 bg-neutral-900 justify-center">
+      <SafeAreaView style={styles.container}>
         {/* Título */}
-        <Text className="text-white text-4xl font-bold text-center mb-2">
-          <Text className="text-pink-400">M</Text>ilky{" "}
-          <Text className="text-pink-400">M</Text>ovies
-        </Text>
-        <Text className="text-gray-400 text-center mb-6">Login</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.mainTitle}>
+            <Text style={{ color: "#EC4899" }}>M</Text>ilky{" "}
+            <Text style={{ color: "#EC4899" }}>M</Text>ovies
+          </Text>
+          <Text style={styles.subtitle}>Login</Text>
+        </View>
 
-        <View className="px-6">
+        <View>
           <Controller
             control={control}
             name="email"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                placeholder="Email"
-                placeholderTextColor="gray"
-                className="bg-neutral-800 text-white p-4 rounded-xl mb-2"
-                onChangeText={onChange}
-                value={value}
-                autoCapitalize="none"
-              />
+              <View style={styles.inputContainer}>
+                <TextInput
+                  placeholder="Email"
+                  placeholderTextColor="#6B7280"
+                  style={styles.input}
+                  onChangeText={onChange}
+                  value={value}
+                  autoCapitalize="none"
+                />
+              </View>
             )}
           />
           {errors.email && (
-            <Text className="text-red-400 mb-2">{errors.email.message}</Text>
+            <Text style={styles.errorText}>{errors.email.message}</Text>
           )}
 
           <Controller
             control={control}
             name="password"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                placeholder="Senha"
-                placeholderTextColor="gray"
-                secureTextEntry
-                className="bg-neutral-800 text-white p-4 rounded-xl mb-4"
-                onChangeText={onChange}
-                value={value}
-              />
+              <View style={styles.inputContainer}>
+                <TextInput
+                  placeholder="Senha"
+                  placeholderTextColor="#6B7280"
+                  secureTextEntry
+                  style={styles.input}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              </View>
             )}
           />
           {errors.password && (
-            <Text className="text-red-400 mb-2">{errors.password.message}</Text>
+            <Text style={styles.errorText}>{errors.password.message}</Text>
           )}
 
           <TouchableOpacity
-            className="bg-pink-500 p-4 rounded-xl mb-4"
+            style={styles.loginButton}
             onPress={handleSubmit(onSubmit)}
           >
-            <Text className="text-white text-center font-semibold">Entrar</Text>
+            <Text style={styles.loginButtonText}>Entrar</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text className="text-gray-400 text-center">
+          <Text style={styles.registerText}>
             Não tem conta?{" "}
-            <Text className="text-pink-400 font-bold">Cadastre-se</Text>
+            <Text style={styles.registerLink}>Cadastre-se</Text>
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => navigation.replace("Splash")}
-          className="mt-6"
+          style={styles.cancelButton}
         >
-          <Text className="text-center text-sm text-neutral-500 underline">
-            Cancelar e voltar
-          </Text>
+          <Text style={styles.cancelButtonText}>Cancelar e voltar</Text>
         </TouchableOpacity>
       </SafeAreaView>
     </AppLayout>

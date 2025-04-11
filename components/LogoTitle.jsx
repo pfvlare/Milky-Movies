@@ -1,13 +1,31 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { Text, View, StyleSheet } from "react-native";
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  pinkText: {
+    color: '#EC4899',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  whiteText: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+});
 
 export default function LogoTitle() {
   return (
-    <View className="flex-row justify-center mb-6">
-      <Text className="text-3xl font-bold text-pink-500">M</Text>
-      <Text className="text-3xl font-bold text-white">ilky </Text>
-      <Text className="text-3xl font-bold text-pink-500">M</Text>
-      <Text className="text-3xl font-bold text-white">ovies</Text>
+    <View style={styles.container}>
+      <Text style={styles.pinkText}>M</Text>
+      <Text style={styles.whiteText}>ilky </Text>
+      <Text style={styles.pinkText}>M</Text>
+      <Text style={styles.whiteText}>ovies</Text>
     </View>
   );
 }
