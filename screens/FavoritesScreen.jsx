@@ -7,28 +7,91 @@ import {
   ScrollView,
   Dimensions,
   SafeAreaView,
+  StyleSheet,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { fallBackMoviePoster, image185 } from "../api/moviedb";
 import AppLayout from "../components/AppLayout";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#111827",
+    paddingTop: 50,
+    paddingHorizontal: 16,
+  },
+  backButton: {
+    position: "absolute",
+    left: 16,
+    top: 16,
+    zIndex: 10,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  mainTitle: {
+    color: "white",
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  pinkText: {
+    color: "#EC4899",
+  },
+  subtitle: {
+    color: "#6B7280",
+    fontSize: 16,
+  },
+  emptyFavorites: {
+    color: "#4B5563",
+    fontSize: 16,
+    marginTop: 40,
+    textAlign: "center",
+  },
+  favoritesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  movieItem: {
+    marginBottom: 16,
+    width: width * 0.44,
+  },
+  moviePoster: {
+    width: "100%",
+    height: height * 0.3,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  movieTitle: {
+    color: "white",
+    fontSize: 14,
+  },
+});
 
 export default function FavoritesScreen() {
   const [favorites, setFavorites] = useState([]);
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const loadFavorites = async () => {
-      const stored = await AsyncStorage.getItem("@favorites");
-      if (stored) {
-        setFavorites(JSON.parse(stored));
-      }
-    };
-    const unsubscribe = navigation.addListener("focus", loadFavorites);
-    return unsubscribe;
-  }, [navigation]);
+  const loadFavorites = async () => {
+    const stored = await AsyncStorage.getItem("favorites");
+    if (stored) {
+      setFavorites(JSON.parse(stored));
+    } else {
+      setFavorites([]);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadFavorites();
+    }, [])
+  );
 
   const goToMovie = (movie) => {
     navigation.navigate("Movie", movie);
@@ -36,32 +99,34 @@ export default function FavoritesScreen() {
 
   return (
     <AppLayout>
-      <SafeAreaView className="flex-1 bg-neutral-900 pt-12 px-4">
+      <SafeAreaView style={styles.container}>
         <TouchableOpacity
-          className="absolute left-4 top-14 z-10"
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text className="text-pink-400 font-semibold">← Voltar</Text>
+          <Ionicons name="arrow-back" size={24} color="#EC4899" />
         </TouchableOpacity>
 
-        <Text className="text-white text-4xl font-bold mb-1 text-center">
-          <Text className="text-pink-400">M</Text>ilky{" "}
-          <Text className="text-pink-400">M</Text>ovies
-        </Text>
-        <Text className="text-gray-400 text-center mb-4">Favoritos</Text>
+        <View style={styles.header}>
+          <Text style={styles.mainTitle}>
+            <Text style={styles.pinkText}>M</Text>ilky{" "}
+            <Text style={styles.pinkText}>M</Text>ovies
+          </Text>
+          <Text style={styles.subtitle}>Favoritos</Text>
+        </View>
 
         {favorites.length === 0 ? (
-          <Text className="text-neutral-400 text-center mt-10">
+          <Text style={styles.emptyFavorites}>
             Nenhum filme adicionado aos favoritos.
           </Text>
         ) : (
-          <ScrollView>
-            <View className="flex-row flex-wrap justify-between">
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={styles.favoritesGrid}>
               {favorites.map((item, index) => (
                 <TouchableOpacity
                   key={index}
                   onPress={() => goToMovie(item)}
-                  className="mb-4"
+                  style={styles.movieItem}
                 >
                   <Image
                     source={{
@@ -69,15 +134,10 @@ export default function FavoritesScreen() {
                         ? image185(item.poster_path)
                         : fallBackMoviePoster,
                     }}
-                    style={{
-                      width: width * 0.44,
-                      height: height * 0.3,
-                      borderRadius: 20,
-                      marginBottom: 8,
-                    }}
+                    style={styles.moviePoster}
                   />
-                  <Text className="text-white w-40">
-                    {item.title.length > 20
+                  <Text style={styles.movieTitle}>
+                    {item.title?.length > 20
                       ? item.title.slice(0, 20) + "..."
                       : item.title}
                   </Text>

@@ -1,64 +1,91 @@
-
-import { View, Text, TouchableOpacity, ScrollView, TouchableWithoutFeedback, Image, Dimensions } from 'react-native'
-import React from 'react'
-import { styles } from '../theme'
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TouchableWithoutFeedback, Image, Dimensions, StyleSheet } from 'react-native';
+import { styles as themeStyles } from '../theme';
 import { useNavigation } from '@react-navigation/native';
 import { fallBackMoviePoster, image185 } from '../api/moviedb';
 
-var { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+const styles = StyleSheet.create({
+    container: {
+        marginBottom: 24,
+    },
+    header: {
+        marginHorizontal: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    title: {
+        color: 'white',
+        fontSize: 18,
+    },
+    seeMore: {
+        color: themeStyles.text,
+        fontSize: 16,
+    },
+    scrollViewContent: {
+        paddingHorizontal: 16,
+        paddingTop: 16,
+    },
+    movieItem: {
+        marginRight: 16,
+    },
+    moviePoster: {
+        width: width * 0.33,
+        height: height * 0.22,
+        borderRadius: 24,
+    },
+    movieTitle: {
+        color: '#D1D5DB',
+        fontSize: 14,
+        marginTop: 8,
+        marginBottom: 10,
+    },
+});
 
 export default function MovieList({ title, data, hiddenSeeAll }) {
-
     const navigation = useNavigation();
 
     return (
-
-        <View className="mb-8 space-y-4">
-            <View className="mx-4 flex-row justify-between items-center">
-                <Text className="text-white text-xl">{title}</Text>
-                {
-                    !hiddenSeeAll && (
-                        <TouchableOpacity>
-                            <Text style={styles.text} className="text-lg">Ver Mais</Text>
-                        </TouchableOpacity>
-                    )
-                }
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.title}>{title}</Text>
+                {!hiddenSeeAll && (
+                    <TouchableOpacity>
+                        <Text style={styles.seeMore}>Ver Mais</Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
-            {/* Lista de Filmes */}
             <ScrollView
                 horizontal
-                showsHorizontalScroll Indicator={false}
-                contentContainerStyle={{ paddingHorizontal: 15, paddingTop: 15 }}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.scrollViewContent}
             >
-                {
-                    data.map((item, index) => {
-                        return (
-                            <TouchableWithoutFeedback
-                                key={index}
-                                onPress={() => navigation.push('Movie', item)}
-                            >
-
-                                <View className="space-y-1 mr-4">
-                                    <Image
-                                        source={
-                                            item.poster_path ?
-                                                { uri: image185(item.poster_path) } : fallBackMoviePoster
-                                        }
-                                        className="rounded-3xl"
-                                        style={{ width: width * 0.33, height: height * 0.22 }}
-                                    />
-                                    <Text className="text-neutral-300 ml-1 mt-3" style={{ paddingBottom: 10 }}>
-                                        {
-                                            item.title.length > 14 ? item.title.slice(0, 14) + '...' : item.title
-                                        }
-                                    </Text>
-                                </View>
-                            </TouchableWithoutFeedback>
-                        )
-                    })
-                }
+                {data.map((item, index) => (
+                    <TouchableWithoutFeedback
+                        key={index}
+                        onPress={() => navigation.push('Movie', item)}
+                    >
+                        <View style={styles.movieItem}>
+                            <Image
+                                source={
+                                    item.poster_path
+                                        ? { uri: image185(item.poster_path) }
+                                        : fallBackMoviePoster
+                                }
+                                style={styles.moviePoster}
+                            />
+                            <Text style={styles.movieTitle}>
+                                {item.title?.length > 14
+                                    ? item.title.slice(0, 14) + '...'
+                                    : item.title}
+                            </Text>
+                        </View>
+                    </TouchableWithoutFeedback>
+                ))}
             </ScrollView>
         </View>
-    )
+    );
 }

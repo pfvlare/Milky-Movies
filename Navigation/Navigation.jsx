@@ -15,19 +15,17 @@ import ProfileScreen from "../screens/ProfileScreen";
 
 const Stack = createNativeStackNavigator();
 
-export default function Navigation() {
+export default function Navigation({ initialRoute = "Splash" }) {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Splash"
+        initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Subscription" component={SubscriptionScreen} />
-
-        {/* App */}
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Movie" component={MovieScreen} />
         <Stack.Screen name="Person" component={PersonScreen} />
