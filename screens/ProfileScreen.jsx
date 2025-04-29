@@ -24,8 +24,15 @@ const styles = StyleSheet.create({
   innerWrapper: {
     paddingHorizontal: 24,
   },
+  backButton: {
+    position: "absolute",
+    top: 50,
+    left: 16,
+    zIndex: 10,
+  },
   header: {
     alignItems: "center",
+    marginTop: 40,
     marginBottom: 24,
   },
   mainTitle: {
@@ -37,9 +44,6 @@ const styles = StyleSheet.create({
   subtitle: {
     color: "#6B7280",
     fontSize: 18,
-  },
-  userInfoContainer: {
-    marginBottom: 24,
   },
   infoItem: {
     marginBottom: 12,
@@ -53,18 +57,20 @@ const styles = StyleSheet.create({
     color: "#D1D5DB",
     fontSize: 16,
   },
-  subscriptionContainer: {
+  section: {
     marginBottom: 24,
   },
-  subscriptionTitle: {
+  sectionTitle: {
     color: "white",
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 8,
   },
-  subscriptionStatus: {
-    color: "#6B7280",
-    fontSize: 16,
+  button: {
+    backgroundColor: theme.text,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
     marginBottom: 16,
   },
   cancelButton: {
@@ -84,13 +90,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     fontSize: 18,
-  },
-  menuButton: {
-    position: "absolute",
-    top: Platform.OS === "ios" ? 16 : 8,
-    left: 16,
-    zIndex: 10,
-    padding: 8,
   },
   loadingText: {
     color: "white",
@@ -131,18 +130,16 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleMenu = () => {
-    // Aqui você pode abrir o menu lateral ou um modal futuro
-    console.log("Menu pressionado");
+  const handleUpdateCard = () => {
+    navigation.navigate("Subscription");
   };
+
+  const maskCard = (number) =>
+    number ? `**** **** **** ${number.slice(-4)}` : "Não informado";
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-        className='absolute top-[82px] left-6 z-50'
-      >
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="#EC4899" />
       </TouchableOpacity>
 
@@ -157,52 +154,65 @@ export default function ProfileScreen() {
           </View>
 
           {user ? (
-            <View style={styles.userInfoContainer}>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Nome:</Text>
-                <Text style={styles.infoText}>
-                  {user.firstName} {user.lastName}
-                </Text>
+            <>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Dados Pessoais</Text>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Nome:</Text>
+                  <Text style={styles.infoText}>
+                    {user.firstName} {user.lastName}
+                  </Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Email:</Text>
+                  <Text style={styles.infoText}>{user.email}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Endereço:</Text>
+                  <Text style={styles.infoText}>{user.address}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Telefone:</Text>
+                  <Text style={styles.infoText}>{user.phone}</Text>
+                </View>
               </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Email:</Text>
-                <Text style={styles.infoText}>{user.email}</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Endereço:</Text>
-                <Text style={styles.infoText}>{user.address}</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Telefone:</Text>
-                <Text style={styles.infoText}>{user.phone}</Text>
-              </View>
-            </View>
-          ) : (
-            <Text style={styles.loadingText}>
-              Carregando dados do usuário...
-            </Text>
-          )}
 
-          {user && (
-            <View style={styles.subscriptionContainer}>
-              <Text style={styles.subscriptionTitle}>Assinatura</Text>
-              <Text style={styles.subscriptionStatus}>Status: Ativa</Text>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={handleCancelSubscription}
-              >
-                <Text style={styles.buttonText}>Cancelar Assinatura</Text>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Cartão de Pagamento</Text>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Número:</Text>
+                  <Text style={styles.infoText}>
+                    {maskCard(user?.subscription?.cardNumber)}
+                  </Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Validade:</Text>
+                  <Text style={styles.infoText}>
+                    {user?.subscription?.expiry || "Não informado"}
+                  </Text>
+                </View>
+                <TouchableOpacity style={styles.button} onPress={handleUpdateCard}>
+                  <Text style={styles.buttonText}>Alterar forma de pagamento</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Assinatura</Text>
+                <Text style={styles.subtitle}>Status: Ativa</Text>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={handleCancelSubscription}
+                >
+                  <Text style={styles.buttonText}>Cancelar Assinatura</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <Text style={styles.buttonText}>Sair</Text>
               </TouchableOpacity>
-            </View>
-          )}
-
-          {user && (
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-            >
-              <Text style={styles.buttonText}>Sair</Text>
-            </TouchableOpacity>
+            </>
+          ) : (
+            <Text style={styles.loadingText}>Carregando dados do usuário...</Text>
           )}
         </View>
       </ScrollView>

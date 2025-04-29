@@ -1,3 +1,4 @@
+// IMPORTS
 import React, { useState } from "react";
 import {
   View,
@@ -16,23 +17,27 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Ionicons } from "@expo/vector-icons";
 import * as themeConfig from "../theme";
+
 const theme = themeConfig.theme;
 
+// VALIDAÇÃO COM YUP
 const schema = yup.object().shape({
   cardNumber: yup
     .string()
     .required("Número do cartão é obrigatório")
-    .min(16, "Mínimo 16 dígitos")
-    .max(16, "Máximo 16 dígitos"),
+    .length(16, "O número do cartão deve ter 16 dígitos"),
   cvv: yup
     .string()
     .required("CVV é obrigatório")
-    .min(3, "CVV inválido")
-    .max(4, "CVV inválido"),
+    .length(3, "O CVV deve ter exatamente 3 dígitos"),
   expiry: yup
     .string()
     .required("Data de validade é obrigatória")
     .matches(/^(0[1-9]|1[0-2])\/([0-9]{2})$/, "Formato inválido (MM/AA)"),
+  password: yup
+    .string()
+    .required("Senha obrigatória")
+    .length(6, "A senha deve conter exatamente 6 caracteres"),
 });
 
 const styles = StyleSheet.create({
@@ -122,7 +127,12 @@ export default function SubscriptionScreen({ navigation }) {
       const updatedUser = {
         ...JSON.parse(userData),
         isSubscribed: true,
-        subscription: data,
+        subscription: {
+          cardNumber: data.cardNumber,
+          cvv: data.cvv,
+          expiry: data.expiry,
+        },
+        password: data.password,
       };
 
       await AsyncStorage.setItem("@user", JSON.stringify(updatedUser));
@@ -158,9 +168,10 @@ export default function SubscriptionScreen({ navigation }) {
         </View>
 
         {[
-          { name: "cardNumber", placeholder: "Número do cartão" },
-          { name: "cvv", placeholder: "CVV" },
-          { name: "expiry", placeholder: "Validade (MM/AA)" },
+          { name: "cardNumber", placeholder: "Número do cartão", keyboardType: "numeric", maxLength: 16 },
+          { name: "cvv", placeholder: "CVV", keyboardType: "numeric", maxLength: 3 },
+          { name: "expiry", placeholder: "Validade (MM/AA)", keyboardType: "numeric", maxLength: 5 },
+          { name: "password", placeholder: "Senha (6 caracteres)", keyboardType: "default", maxLength: 6, secure: true },
         ].map((field) => (
           <View key={field.name}>
             <Controller
@@ -172,8 +183,9 @@ export default function SubscriptionScreen({ navigation }) {
                     placeholder={field.placeholder}
                     placeholderTextColor="#6B7280"
                     style={styles.input}
-                    keyboardType="numeric"
-                    maxLength={field.name === "cvv" ? 4 : field.name === "expiry" ? 5 : 16}
+                    keyboardType={field.keyboardType}
+                    secureTextEntry={field.secure || false}
+                    maxLength={field.maxLength}
                     value={value}
                     onChangeText={(text) => {
                       if (field.name === "expiry") {
