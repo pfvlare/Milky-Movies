@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, Pressable } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Pressable, StyleSheet } from "react-native";
 import React, { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { MagnifyingGlassIcon, Bars3Icon } from "react-native-heroicons/outline";
@@ -18,7 +18,7 @@ const theme = themeConfig.theme;
 
 const hiddenMenuRoutes = ["Login", "Register", "Splash", "Subscription"];
 
-const styles = StyleSheet.create({
+const localStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
@@ -94,10 +94,10 @@ export default function HomeScreen() {
 
   return (
     <AppLayout>
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={localStyles.container}>
+        <View style={localStyles.header}>
           <TouchableOpacity
-            style={styles.menuButton}
+            style={localStyles.menuButton}
             onPress={handleMenu}
             disabled={!shouldShowMenu}
           >
@@ -108,15 +108,15 @@ export default function HomeScreen() {
             )}
           </TouchableOpacity>
 
-          <View style={styles.titleContainer}>
-            <Text style={styles.mainTitle}>
-              <Text style={styles.pinkText}>M</Text>ilky{" "}
-              <Text style={styles.pinkText}>M</Text>ovies
+          <View style={localStyles.titleContainer}>
+            <Text style={localStyles.mainTitle}>
+              <Text style={localStyles.pinkText}>M</Text>ilky{" "}
+              <Text style={localStyles.pinkText}>M</Text>ovies
             </Text>
           </View>
 
           <TouchableOpacity
-            style={styles.searchButton}
+            style={localStyles.searchButton}
             onPress={() => navigation.navigate("Search")}
           >
             <Ionicons name="search-outline" size={30} color="white" />
@@ -134,7 +134,7 @@ export default function HomeScreen() {
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContainer}
+            contentContainerStyle={localStyles.scrollContainer}
           >
             {trending.length > 0 && <TrendingMovies data={trending} />}
             <MovieList title="Lançamentos" data={upcoming} />

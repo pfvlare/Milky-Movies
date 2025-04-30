@@ -7,21 +7,12 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Image,
-<<<<<<< HEAD
-} from "react-native";
-import React, { useEffect, useState } from "react";
-import { ChevronLeftIcon } from "react-native-heroicons/outline";
-import { HeartIcon } from "react-native-heroicons/solid";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { styles } from "../theme";
-=======
   StyleSheet,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { ChevronLeftIcon, HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
 import { HeartIcon } from "react-native-heroicons/solid";
 import { useNavigation, useRoute } from "@react-navigation/native";
->>>>>>> origin/main
 import MovieList from "../components/movieList";
 import Loading from "../components/loading";
 import {
@@ -30,7 +21,7 @@ import {
   fetchPersonMovies,
   image342,
 } from "../api/moviedb";
-import { Ionicons } from "@expo/vector-icons"; // Importe os ícones
+import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 const ios = Platform.OS === "ios";
@@ -116,7 +107,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     color: "white",
-    fontWeight: "semibold",
+    fontWeight: "600",
     fontSize: 16,
   },
   infoValue: {
@@ -149,7 +140,7 @@ export default function PersonScreen() {
   const [personMovies, setPersonMovies] = useState([]);
   const [person, setPerson] = useState({});
   const [loading, setLoading] = useState(false);
-  const [showMenu, setShowMenu] = useState(false); // Estado para controlar a visibilidade do menu
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -170,10 +161,6 @@ export default function PersonScreen() {
 
   const handleMenu = () => {
     setShowMenu(!showMenu);
-    // Aqui você precisará integrar com o seu MenuModal
-    // Se o MenuModal for um componente separado que você passa como filho do AppLayout,
-    // você precisará controlar a visibilidade dele através de um estado no componente pai (AppLayout ou um wrapper).
-    // Por enquanto, apenas o estado local showMenu está sendo alternado.
     console.log("Menu toggled!");
   };
 
@@ -287,10 +274,7 @@ export default function PersonScreen() {
         </View>
       )}
 
-      {/* Renderização condicional do MenuModal */}
       {/* <MenuModal visible={showMenu} trigger={handleMenu} /> */}
-      {/* Lembre-se de importar o seu MenuModal e descomentar a linha acima */}
-      {/* e certificar-se de que o MenuModal está configurado corretamente para receber a visibilidade */}
     </ScrollView>
   );
 }
