@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   SafeAreaView,
+  StyleSheet,
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -12,10 +13,85 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import AppLayout from "../components/AppLayout";
+import { Ionicons } from "@expo/vector-icons";
 
 const schema = yup.object().shape({
   email: yup.string().email("Email inválido").required("Obrigatório"),
-  password: yup.string().required("Obrigatório"),
+  password: yup
+    .string()
+    .matches(/^\d{6}$/, "A senha deve ter exatamente 6 números")
+    .required("Obrigatório"),
+});
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#111827",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  titleContainer: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  mainTitle: {
+    color: "white",
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  subtitle: {
+    color: "#6B7280",
+    fontSize: 18,
+  },
+  inputContainer: {
+    backgroundColor: "#374151",
+    borderRadius: 12,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  input: {
+    color: "white",
+    paddingVertical: 12,
+    fontSize: 16,
+    flex: 1,
+  },
+  errorText: {
+    color: "#F44336",
+    marginBottom: 8,
+  },
+  loginButton: {
+    backgroundColor: "#EC4899",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  loginButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  registerText: {
+    color: "#6B7280",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  registerLink: {
+    color: "#EC4899",
+    fontWeight: "bold",
+  },
+  cancelButton: {
+    marginTop: 24,
+  },
+  cancelButtonText: {
+    textAlign: "center",
+    fontSize: 14,
+    color: "#4B5563",
+    textDecorationLine: "underline",
+  },
 });
 
 export default function LoginScreen({ navigation }) {
@@ -25,95 +101,124 @@ export default function LoginScreen({ navigation }) {
     formState: { errors },
   } = useForm({ resolver: yupResolver(schema) });
 
-  const onSubmit = async (data) => {
-    const savedUser = await AsyncStorage.getItem("@user");
-    const parsedUser = savedUser ? JSON.parse(savedUser) : null;
+  const [showPassword, setShowPassword] = useState(false);
 
-    if (
-      parsedUser &&
-      data.email === parsedUser.email &&
-      data.password === parsedUser.password
-    ) {
-      if (!parsedUser.isSubscribed) {
-        navigation.replace("Subscription");
-      } else {
+  const onSubmit = async (data) => {
+    try {
+      const response = await fetch("http://localhost:3000/user/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        await AsyncStorage.setItem("@user", JSON.stringify(result.user));
         await AsyncStorage.setItem("@isLoggedIn", "true");
-        navigation.replace("Home");
+
+        if (!result.user.isSubscribed) {
+          navigation.replace("Subscription");
+        } else {
+          navigation.replace("Home");
+        }
+      } else {
+        Alert.alert("Erro no login", result.message || "Credenciais inválidas");
       }
-    } else {
-      Alert.alert("Erro", "Credenciais inválidas");
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível conectar com o servidor.");
+      console.error(error);
     }
   };
 
   return (
     <AppLayout showMenu={false}>
-      <SafeAreaView className="flex-1 bg-neutral-900 justify-center">
-        {/* Título */}
-        <Text className="text-white text-4xl font-bold text-center mb-2">
-          <Text className="text-pink-400">M</Text>ilky{" "}
-          <Text className="text-pink-400">M</Text>ovies
-        </Text>
-        <Text className="text-gray-400 text-center mb-6">Login</Text>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.mainTitle}>
+            <Text style={{ color: "#EC4899" }}>M</Text>ilky{" "}
+            <Text style={{ color: "#EC4899" }}>M</Text>ovies
+          </Text>
+          <Text style={styles.subtitle}>Login</Text>
+        </View>
 
-        <View className="px-6">
+        <View>
+          {/* Email */}
           <Controller
             control={control}
             name="email"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                placeholder="Email"
-                placeholderTextColor="gray"
-                className="bg-neutral-800 text-white p-4 rounded-xl mb-2"
-                onChangeText={onChange}
-                value={value}
-                autoCapitalize="none"
-              />
+              <View style={styles.inputContainer}>
+                <TextInput
+                  placeholder="Email"
+                  placeholderTextColor="#6B7280"
+                  style={styles.input}
+                  onChangeText={onChange}
+                  value={value}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              </View>
             )}
           />
           {errors.email && (
-            <Text className="text-red-400 mb-2">{errors.email.message}</Text>
+            <Text style={styles.errorText}>{errors.email.message}</Text>
           )}
 
+          {/* Senha */}
           <Controller
             control={control}
             name="password"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                placeholder="Senha"
-                placeholderTextColor="gray"
-                secureTextEntry
-                className="bg-neutral-800 text-white p-4 rounded-xl mb-4"
-                onChangeText={onChange}
-                value={value}
-              />
+              <View style={styles.inputContainer}>
+                <TextInput
+                  placeholder="Senha (6 dígitos)"
+                  placeholderTextColor="#6B7280"
+                  secureTextEntry={!showPassword}
+                  style={styles.input}
+                  onChangeText={onChange}
+                  value={value}
+                  maxLength={6}
+                  keyboardType="numeric"
+                />
+                <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
+                  <Ionicons
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={22}
+                    color="#9CA3AF"
+                  />
+                </TouchableOpacity>
+              </View>
             )}
           />
           {errors.password && (
-            <Text className="text-red-400 mb-2">{errors.password.message}</Text>
+            <Text style={styles.errorText}>{errors.password.message}</Text>
           )}
 
           <TouchableOpacity
-            className="bg-pink-500 p-4 rounded-xl mb-4"
+            style={styles.loginButton}
             onPress={handleSubmit(onSubmit)}
           >
-            <Text className="text-white text-center font-semibold">Entrar</Text>
+            <Text style={styles.loginButtonText}>Entrar</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text className="text-gray-400 text-center">
-            Não tem conta?{" "}
-            <Text className="text-pink-400 font-bold">Cadastre-se</Text>
+          <Text style={styles.registerText}>
+            Não tem conta? <Text style={styles.registerLink}>Cadastre-se</Text>
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => navigation.replace("Splash")}
-          className="mt-6"
+          style={styles.cancelButton}
         >
-          <Text className="text-center text-sm text-neutral-500 underline">
-            Cancelar e voltar
-          </Text>
+          <Text style={styles.cancelButtonText}>Cancelar e voltar</Text>
         </TouchableOpacity>
       </SafeAreaView>
     </AppLayout>

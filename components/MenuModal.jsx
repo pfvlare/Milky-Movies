@@ -6,8 +6,33 @@ import {
   Pressable,
   Animated,
   TouchableWithoutFeedback,
+  StyleSheet,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+
+const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    justifyContent: "flex-start",
+    flexDirection: "row",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  menuContainer: {
+    width: "66%",
+    backgroundColor: "#111827",
+    paddingLeft: 32,
+    paddingVertical: 80,
+    borderTopRightRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  menuItem: {
+    marginBottom: 16,
+  },
+  menuText: {
+    color: "white",
+    fontSize: 16,
+  },
+});
 
 export default function MenuModal({ visible, onClose, trigger }) {
   const navigation = useNavigation();
@@ -46,12 +71,17 @@ export default function MenuModal({ visible, onClose, trigger }) {
   return (
     <Modal visible={visible} transparent animationType="none">
       <TouchableOpacity
+<<<<<<< HEAD
         className="flex-1 justify-start flex-row bg-black/50 duration-300"
+=======
+        style={styles.modalContainer}
+>>>>>>> origin/main
         activeOpacity={1}
         onPress={closeMenu}
       >
         <TouchableWithoutFeedback>
           <Animated.View
+<<<<<<< HEAD
             style={{
               transform: [{ translateX: slideAnim }],
               width: "66%",
@@ -66,10 +96,26 @@ export default function MenuModal({ visible, onClose, trigger }) {
             </Pressable>
             <Pressable onPress={() => goTo("Profile")}>
               <Text className="text-white text-lg">👤 Perfil</Text>
-            </Pressable>
+=======
+            style={[styles.menuContainer, { transform: [{ translateX: slideAnim }] }]}
+          >
+              <Pressable onPress={() => goTo("Home")} style={styles.menuItem}>
+                <Text style={styles.menuText}>🎬 Home</Text>
+              </Pressable>
+              <Pressable onPress={() => goTo("Favorites")} style={styles.menuItem}>
+                <Text style={styles.menuText}>⭐ Favoritos</Text>
+              </Pressable>
+              <Pressable onPress={() => goTo("Profile")} style={styles.menuItem}>
+                <Text style={styles.menuText}>👤 Perfil</Text>
+>>>>>>> origin/main
+              </Pressable>
           </Animated.View>
         </TouchableWithoutFeedback>
       </TouchableOpacity>
     </Modal>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/main
