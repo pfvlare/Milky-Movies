@@ -1,4 +1,3 @@
-// IMPORTS
 import React, { useState } from "react";
 import {
   View,
@@ -20,7 +19,7 @@ import * as themeConfig from "../theme";
 
 const theme = themeConfig.theme;
 
-// VALIDAÇÃO COM YUP
+// ✅ Esquema de validação (senha removida)
 const schema = yup.object().shape({
   cardNumber: yup
     .string()
@@ -34,10 +33,6 @@ const schema = yup.object().shape({
     .string()
     .required("Data de validade é obrigatória")
     .matches(/^(0[1-9]|1[0-2])\/([0-9]{2})$/, "Formato inválido (MM/AA)"),
-  password: yup
-    .string()
-    .required("Senha obrigatória")
-    .length(6, "A senha deve conter exatamente 6 caracteres"),
 });
 
 const styles = StyleSheet.create({
@@ -132,7 +127,6 @@ export default function SubscriptionScreen({ navigation }) {
           cvv: data.cvv,
           expiry: data.expiry,
         },
-        password: data.password,
       };
 
       await AsyncStorage.setItem("@user", JSON.stringify(updatedUser));
@@ -167,11 +161,26 @@ export default function SubscriptionScreen({ navigation }) {
           <Text style={styles.subtitle}>Assinatura</Text>
         </View>
 
+        {/* Campos do cartão */}
         {[
-          { name: "cardNumber", placeholder: "Número do cartão", keyboardType: "numeric", maxLength: 16 },
-          { name: "cvv", placeholder: "CVV", keyboardType: "numeric", maxLength: 3 },
-          { name: "expiry", placeholder: "Validade (MM/AA)", keyboardType: "numeric", maxLength: 5 },
-          { name: "password", placeholder: "Senha (6 caracteres)", keyboardType: "default", maxLength: 6, secure: true },
+          {
+            name: "cardNumber",
+            placeholder: "Número do cartão",
+            keyboardType: "numeric",
+            maxLength: 16,
+          },
+          {
+            name: "cvv",
+            placeholder: "CVV",
+            keyboardType: "numeric",
+            maxLength: 3,
+          },
+          {
+            name: "expiry",
+            placeholder: "Validade (MM/AA)",
+            keyboardType: "numeric",
+            maxLength: 5,
+          },
         ].map((field) => (
           <View key={field.name}>
             <Controller
@@ -184,7 +193,6 @@ export default function SubscriptionScreen({ navigation }) {
                     placeholderTextColor="#6B7280"
                     style={styles.input}
                     keyboardType={field.keyboardType}
-                    secureTextEntry={field.secure || false}
                     maxLength={field.maxLength}
                     value={value}
                     onChangeText={(text) => {

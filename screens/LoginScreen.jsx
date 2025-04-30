@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StyleSheet,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useForm, Controller } from "react-hook-form";
@@ -16,7 +17,10 @@ import { Ionicons } from "@expo/vector-icons";
 
 const schema = yup.object().shape({
   email: yup.string().email("Email inválido").required("Obrigatório"),
-  password: yup.string().required("Obrigatório"),
+  password: yup
+    .string()
+    .matches(/^\d{6}$/, "A senha deve ter exatamente 6 números")
+    .required("Obrigatório"),
 });
 
 const styles = StyleSheet.create({
@@ -45,11 +49,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
   },
   input: {
     color: "white",
     paddingVertical: 12,
     fontSize: 16,
+    flex: 1,
   },
   errorText: {
     color: "#F44336",
@@ -94,30 +101,44 @@ export default function LoginScreen({ navigation }) {
     formState: { errors },
   } = useForm({ resolver: yupResolver(schema) });
 
-  const onSubmit = async (data) => {
-    const savedUser = await AsyncStorage.getItem("@user");
-    const parsedUser = savedUser ? JSON.parse(savedUser) : null;
+  const [showPassword, setShowPassword] = useState(false);
 
-    if (
-      parsedUser &&
-      data.email === parsedUser.email &&
-      data.password === parsedUser.password
-    ) {
-      if (!parsedUser.isSubscribed) {
-        navigation.replace("Subscription");
-      } else {
+  const onSubmit = async (data) => {
+    try {
+      const response = await fetch("http://localhost:3000/user/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        await AsyncStorage.setItem("@user", JSON.stringify(result.user));
         await AsyncStorage.setItem("@isLoggedIn", "true");
-        navigation.replace("Home");
+
+        if (!result.user.isSubscribed) {
+          navigation.replace("Subscription");
+        } else {
+          navigation.replace("Home");
+        }
+      } else {
+        Alert.alert("Erro no login", result.message || "Credenciais inválidas");
       }
-    } else {
-      Alert.alert("Erro", "Credenciais inválidas");
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível conectar com o servidor.");
+      console.error(error);
     }
   };
 
   return (
     <AppLayout showMenu={false}>
       <SafeAreaView style={styles.container}>
-        {/* Título */}
         <View style={styles.titleContainer}>
           <Text style={styles.mainTitle}>
             <Text style={{ color: "#EC4899" }}>M</Text>ilky{" "}
@@ -127,6 +148,7 @@ export default function LoginScreen({ navigation }) {
         </View>
 
         <View>
+          {/* Email */}
           <Controller
             control={control}
             name="email"
@@ -139,6 +161,7 @@ export default function LoginScreen({ navigation }) {
                   onChangeText={onChange}
                   value={value}
                   autoCapitalize="none"
+                  keyboardType="email-address"
                 />
               </View>
             )}
@@ -147,19 +170,29 @@ export default function LoginScreen({ navigation }) {
             <Text style={styles.errorText}>{errors.email.message}</Text>
           )}
 
+          {/* Senha */}
           <Controller
             control={control}
             name="password"
             render={({ field: { onChange, value } }) => (
               <View style={styles.inputContainer}>
                 <TextInput
-                  placeholder="Senha"
+                  placeholder="Senha (6 dígitos)"
                   placeholderTextColor="#6B7280"
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   style={styles.input}
                   onChangeText={onChange}
                   value={value}
+                  maxLength={6}
+                  keyboardType="numeric"
                 />
+                <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
+                  <Ionicons
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={22}
+                    color="#9CA3AF"
+                  />
+                </TouchableOpacity>
               </View>
             )}
           />
@@ -177,8 +210,7 @@ export default function LoginScreen({ navigation }) {
 
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
           <Text style={styles.registerText}>
-            Não tem conta?{" "}
-            <Text style={styles.registerLink}>Cadastre-se</Text>
+            Não tem conta? <Text style={styles.registerLink}>Cadastre-se</Text>
           </Text>
         </TouchableOpacity>
 
