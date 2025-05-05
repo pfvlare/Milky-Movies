@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
-  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useForm, Controller } from "react-hook-form";
@@ -16,6 +15,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Ionicons } from "@expo/vector-icons";
 import * as themeConfig from "../theme";
+import Toast from 'react-native-toast-message';
 
 const theme = themeConfig.theme;
 
@@ -119,20 +119,12 @@ export default function RegisterScreen({ navigation }) {
 
   const onSubmit = async (data) => {
     try {
-      const { firstname, lastname, email, password, address, phone } = data
       const response = await fetch("http://localhost:3000/user/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: {
-          firstname,
-          lastname,
-          email,
-          password,
-          address,
-          phone,
-        },
+        body: JSON.stringify(data),
       });
 
       const result = await response.json();
@@ -146,13 +138,25 @@ export default function RegisterScreen({ navigation }) {
             isSubscribed: false,
           })
         );
+        Toast.show({
+          type: "success",
+          text1: "Cadastro realizado com sucesso!",
+        });
         navigation.replace("Subscription");
       } else {
-        Alert.alert("Erro no cadastro", result.message || "Tente novamente.");
+        Toast.show({
+          type: "error",
+          text1: "Erro no cadastro",
+          text2: result.message || "Tente novamente.",
+        });
       }
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível conectar com o servidor.");
-      console.reror(error);
+      Toast.show({
+        type: "error",
+        text1: "Erro de conexão",
+        text2: "Não foi possível conectar com o servidor.",
+      });
+      console.error(error);
     }
   };
 

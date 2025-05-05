@@ -37,6 +37,7 @@
     "react-native-screens": "~4.4.0",
     "react-native-snap-carousel": "^3.9.1",
     "react-native-svg": "15.8.0",
+    "react-native-toast-message": "^2.3.0",
     "react-native-web": "~0.19.13",
     "tailwindcss": "^3.4.15",
     "yup": "^1.6.1"
