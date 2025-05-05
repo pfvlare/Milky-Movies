@@ -32,8 +32,6 @@ Milky Movies é um app mobile para **exploração e gerenciamento de filmes favo
 - 🧭 [React Navigation](https://reactnavigation.org)
 - 🎨 [NativeWind (Tailwind para RN)](https://www.nativewind.dev)
 - 💅 [Expo Linear Gradient](https://www.npmjs.com/package/expo-linear-gradient)
-- 🎞️ [react-native-snap-carousel](https://www.npmjs.com/package/react-native-snap-carousel)
-  - ✅ Corrigido com: `meliorence/react-native-snap-carousel#970`
 - 🎯 [React Native Progress](https://www.npmjs.com/package/react-native-progress)
 - 🔥 [React Native Heroicons](https://www.npmjs.com/package/react-native-heroicons)
 - 📡 [Axios](https://www.npmjs.com/package/axios)
