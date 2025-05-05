@@ -45,5 +45,5 @@ Milky Movies é um app mobile para **exploração e gerenciamento de filmes favo
 1. Clone o repositório:
 
 ```bash
-git clone https://github.com/seu-usuario/milky-movies.git
+git clone https://github.com/pfvlare/Milky-Movies.git
 cd milky-movies
