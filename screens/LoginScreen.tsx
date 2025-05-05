@@ -118,26 +118,25 @@ export default function LoginScreen({ navigation }) {
 
       const result = await response.json();
 
-      if (response.ok) {
-        await AsyncStorage.setItem("@user", JSON.stringify(result.user));
-        await AsyncStorage.setItem("@isLoggedIn", "true");
+      if (!response.ok) {
+        throw new Error(result?.message || "Usuário não retornado na resposta.");
+      }
 
-        if (!result.user.isSubscribed) {
-          navigation.replace("Subscription");
-        } else {
-          navigation.replace("Home");
-        }
+      const user = result;
+
+      if (user.email) {
+        navigation.replace("Home");
       } else {
-        Alert.alert("Erro no login", result.message || "Credenciais inválidas");
+        navigation.replace("Register");
       }
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível conectar com o servidor.");
-      console.error(error);
+      Alert.alert("Erro", error?.message || "Não foi possível conectar com o servidor.");
+      console.error("❌ Erro ao logar:", error);
     }
   };
 
   return (
-    <AppLayout showMenu={false}>
+    <AppLayout>
       <SafeAreaView style={styles.container}>
         <View style={styles.titleContainer}>
           <Text style={styles.mainTitle}>

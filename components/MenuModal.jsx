@@ -71,51 +71,26 @@ export default function MenuModal({ visible, onClose, trigger }) {
   return (
     <Modal visible={visible} transparent animationType="none">
       <TouchableOpacity
-<<<<<<< HEAD
-        className="flex-1 justify-start flex-row bg-black/50 duration-300"
-=======
         style={styles.modalContainer}
->>>>>>> origin/main
         activeOpacity={1}
         onPress={closeMenu}
       >
         <TouchableWithoutFeedback>
           <Animated.View
-<<<<<<< HEAD
-            style={{
-              transform: [{ translateX: slideAnim }],
-              width: "66%",
-            }}
-            className="bg-neutral-900 pl-8 py-20 rounded-tr-3xl rounded-br-3xl"
-          >
-            <Pressable onPress={() => goTo("Home")} className="mb-4">
-              <Text className="text-white text-lg">🎬 Home</Text>
-            </Pressable>
-            <Pressable onPress={() => goTo("Favorites")} className="mb-4">
-              <Text className="text-white text-lg">⭐ Favoritos</Text>
-            </Pressable>
-            <Pressable onPress={() => goTo("Profile")}>
-              <Text className="text-white text-lg">👤 Perfil</Text>
-=======
             style={[styles.menuContainer, { transform: [{ translateX: slideAnim }] }]}
           >
-              <Pressable onPress={() => goTo("Home")} style={styles.menuItem}>
-                <Text style={styles.menuText}>🎬 Home</Text>
-              </Pressable>
-              <Pressable onPress={() => goTo("Favorites")} style={styles.menuItem}>
-                <Text style={styles.menuText}>⭐ Favoritos</Text>
-              </Pressable>
-              <Pressable onPress={() => goTo("Profile")} style={styles.menuItem}>
-                <Text style={styles.menuText}>👤 Perfil</Text>
->>>>>>> origin/main
-              </Pressable>
+            <Pressable onPress={() => goTo("Home")} style={styles.menuItem}>
+              <Text style={styles.menuText}>🎬 Home</Text>
+            </Pressable>
+            <Pressable onPress={() => goTo("Favorites")} style={styles.menuItem}>
+              <Text style={styles.menuText}>⭐ Favoritos</Text>
+            </Pressable>
+            <Pressable onPress={() => goTo("Profile")} style={styles.menuItem}>
+              <Text style={styles.menuText}>👤 Perfil</Text>
+            </Pressable>
           </Animated.View>
         </TouchableWithoutFeedback>
       </TouchableOpacity>
     </Modal>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> origin/main

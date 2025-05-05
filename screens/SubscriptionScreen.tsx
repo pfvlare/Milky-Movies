@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
+  KeyboardTypeOptions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useForm, Controller } from "react-hook-form";
@@ -19,7 +20,6 @@ import * as themeConfig from "../theme";
 
 const theme = themeConfig.theme;
 
-// ✅ Esquema de validação (senha removida)
 const schema = yup.object().shape({
   cardNumber: yup
     .string()
@@ -164,19 +164,19 @@ export default function SubscriptionScreen({ navigation }) {
         {/* Campos do cartão */}
         {[
           {
-            name: "cardNumber",
+            name: "cardNumber" as const,
             placeholder: "Número do cartão",
             keyboardType: "numeric",
             maxLength: 16,
           },
           {
-            name: "cvv",
+            name: "cvv" as const,
             placeholder: "CVV",
             keyboardType: "numeric",
             maxLength: 3,
           },
           {
-            name: "expiry",
+            name: "expiry" as const,
             placeholder: "Validade (MM/AA)",
             keyboardType: "numeric",
             maxLength: 5,
@@ -192,7 +192,7 @@ export default function SubscriptionScreen({ navigation }) {
                     placeholder={field.placeholder}
                     placeholderTextColor="#6B7280"
                     style={styles.input}
-                    keyboardType={field.keyboardType}
+                    keyboardType={field.keyboardType as KeyboardTypeOptions}
                     maxLength={field.maxLength}
                     value={value}
                     onChangeText={(text) => {

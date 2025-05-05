@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from "react"
 import {
   View,
   Text,
@@ -8,20 +8,22 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
-} from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useForm, Controller } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
-import { Ionicons } from "@expo/vector-icons";
-import * as themeConfig from "../theme";
-import Toast from 'react-native-toast-message';
+  KeyboardTypeOptions,
+} from "react-native"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import { useForm, Controller } from "react-hook-form"
+import { yupResolver } from "@hookform/resolvers/yup"
+import * as yup from "yup"
+import { Ionicons } from "@expo/vector-icons"
+import * as themeConfig from "../theme"
+import Toast from "react-native-toast-message"
+import axios from "axios"
 
-const theme = themeConfig.theme;
+const theme = themeConfig.theme
 
 const schema = yup.object().shape({
-  firstName: yup.string().required("Nome é obrigatório"),
-  lastName: yup.string().required("Sobrenome é obrigatório"),
+  firstname: yup.string().required("Nome é obrigatório"),
+  lastname: yup.string().required("Sobrenome é obrigatório"),
   email: yup.string().email("Email inválido").required("Email é obrigatório"),
   password: yup
     .string()
@@ -32,7 +34,16 @@ const schema = yup.object().shape({
     .matches(/^\d{11}$/, "Digite 11 números")
     .required("Telefone é obrigatório"),
   address: yup.string().required("Endereço é obrigatório"),
-});
+})
+
+type FormData = {
+  firstname: string
+  lastname: string
+  email: string
+  password: string
+  phone: string
+  address: string
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -105,64 +116,83 @@ const styles = StyleSheet.create({
     zIndex: 10,
     padding: 8,
   },
-});
+})
 
 export default function RegisterScreen({ navigation }) {
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm({ resolver: yupResolver(schema) });
+  } = useForm<FormData>({ resolver: yupResolver(schema) })
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
+  const [showPassword, setShowPassword] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: FormData) => {
     try {
-      const response = await fetch("http://localhost:3000/user/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        await AsyncStorage.setItem(
-          "@user",
-          JSON.stringify({
-            name: `${data.firstName} ${data.lastName}`,
-            email: data.email,
-            isSubscribed: false,
-          })
-        );
-        Toast.show({
-          type: "success",
-          text1: "Cadastro realizado com sucesso!",
-        });
-        navigation.replace("Subscription");
-      } else {
-        Toast.show({
-          type: "error",
-          text1: "Erro no cadastro",
-          text2: result.message || "Tente novamente.",
-        });
+      const payload = {
+        firstname: data.firstname,
+        lastname: data.lastname,
+        email: data.email.toLowerCase(),
+        password: data.password,
+        phone: data.phone,
+        address: data.address,
       }
-    } catch (error) {
+
+      const response = await axios.post("http://localhost:3000/user/register", payload)
+
+      const result = response.data
+
+      if (!result) {
+        throw new Error()
+      }
+
+      await AsyncStorage.setItem(
+        "@user",
+        JSON.stringify({
+          name: `${data.firstname} ${data.lastname}`,
+          email: data.email,
+          isSubscribed: false,
+        })
+      )
+
+      Toast.show({
+        type: "success",
+        text1: "Cadastro realizado com sucesso!",
+      })
+      navigation.replace("Subscription")
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Erro inesperado, tente novamente."
+
       Toast.show({
         type: "error",
-        text1: "Erro de conexão",
-        text2: "Não foi possível conectar com o servidor.",
-      });
-      console.error(error);
+        text1: "Erro no cadastro",
+        text2: message,
+      })
+      console.error("❌ Erro no cadastro:", error)
     }
-  };
+  }
+
 
   const handleMenu = () => {
-    setShowMenu(!showMenu);
-  };
+    setShowMenu(!showMenu)
+  }
+
+  const fields: {
+    name: keyof FormData
+    placeholder: string
+    keyboardType?: KeyboardTypeOptions
+    maxLength?: number
+  }[] = [
+      { name: "firstname", placeholder: "Nome" },
+      { name: "lastname", placeholder: "Sobrenome" },
+      { name: "email", placeholder: "Email", keyboardType: "email-address" },
+      { name: "phone", placeholder: "Telefone", keyboardType: "numeric", maxLength: 11 },
+      { name: "address", placeholder: "Endereço" },
+    ]
 
   return (
     <SafeAreaView style={styles.container}>
@@ -182,19 +212,7 @@ export default function RegisterScreen({ navigation }) {
           <Text style={styles.subtitle}>Cadastro</Text>
         </View>
 
-        {/* Campos do formulário */}
-        {[
-          { name: "firstname", placeholder: "Nome" },
-          { name: "lastname", placeholder: "Sobrenome" },
-          { name: "email", placeholder: "Email" },
-          {
-            name: "phone",
-            placeholder: "Telefone",
-            keyboardType: "numeric",
-            maxLength: 11,
-          },
-          { name: "address", placeholder: "Endereço" },
-        ].map((field) => (
+        {fields.map((field) => (
           <View key={field.name}>
             <Controller
               control={control}
@@ -205,9 +223,8 @@ export default function RegisterScreen({ navigation }) {
                     placeholder={field.placeholder}
                     placeholderTextColor="#6B7280"
                     style={styles.input}
-                    secureTextEntry={field.secure}
-                    keyboardType={field.keyboardType || "default"}
-                    maxLength={field.maxLength || 100}
+                    keyboardType={field.keyboardType}
+                    maxLength={field.maxLength}
                     onChangeText={onChange}
                     value={value}
                   />
@@ -215,12 +232,11 @@ export default function RegisterScreen({ navigation }) {
               )}
             />
             {errors[field.name] && (
-              <Text style={styles.errorText}>{errors[field.name].message}</Text>
+              <Text style={styles.errorText}>{errors[field.name]?.message}</Text>
             )}
           </View>
         ))}
 
-        {/* Campo de senha com botão de olho */}
         <View>
           <Controller
             control={control}
@@ -266,5 +282,5 @@ export default function RegisterScreen({ navigation }) {
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
-  );
+  )
 }

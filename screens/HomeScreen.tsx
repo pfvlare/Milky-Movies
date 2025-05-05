@@ -1,19 +1,18 @@
-import { View, Text, TouchableOpacity, ScrollView, Pressable, StyleSheet } from "react-native";
-import React, { useEffect, useState } from "react";
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import React, { useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { MagnifyingGlassIcon, Bars3Icon } from "react-native-heroicons/outline";
+import { Ionicons } from "@expo/vector-icons";
 
-import { styles } from "../theme";
 import TrendingMovies from "../components/trendingMovies";
 import MovieList from "../components/movieList";
 import Loading from "../components/loading";
-import {
-  fetchTopRatedMovies,
-  fetchTrendingMovies,
-  fetchUpcomingMovies,
-} from "../api/moviedb";
-
 import * as themeConfig from "../theme";
+import { useNavigation, useRoute, NavigationProp } from "@react-navigation/native";
+import AppLayout from "../components/AppLayout";
+import MenuModal from "../components/MenuModal";
+import { useTrendingMovies } from "../hooks/useMovies";
+import Toast from "react-native-toast-message";
+
 const theme = themeConfig.theme;
 
 const hiddenMenuRoutes = ["Login", "Register", "Splash", "Subscription"];
@@ -55,42 +54,27 @@ const localStyles = StyleSheet.create({
   },
 });
 
+type RootStackParamList = {
+  Search: undefined;
+};
+
 export default function HomeScreen() {
-  const [trending, setTrending] = useState([]);
-  const [upcoming, setUpcoming] = useState([]);
-  const [topRated, setTopRated] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [showMenu, setShowMenu] = useState(false);
 
-  const navigation = useNavigation();
   const route = useRoute();
   const shouldShowMenu = !hiddenMenuRoutes.includes(route.name);
 
-  useEffect(() => {
-    getTrendingMovies();
-    getUpcomingMovies();
-    getTopRatedMovies();
-  }, []);
+  const { data, isLoading, error } = useTrendingMovies();
 
-  const getTrendingMovies = async () => {
-    const data = await fetchTrendingMovies();
-    if (data?.results) setTrending(data.results);
-    setLoading(false);
-  };
+  if (error) {
+    Toast.show({
+      type: "error",
+      text1: error.message || "Erro ao carregar filmes",
+    });
+  }
 
-  const getUpcomingMovies = async () => {
-    const data = await fetchUpcomingMovies();
-    if (data?.results) setUpcoming(data.results);
-  };
-
-  const getTopRatedMovies = async () => {
-    const data = await fetchTopRatedMovies();
-    if (data?.results) setTopRated(data.results);
-  };
-
-  const handleMenu = () => {
-    setShowMenu(!showMenu);
-  };
+  const handleMenu = () => setShowMenu(!showMenu);
 
   return (
     <AppLayout>
@@ -126,19 +110,19 @@ export default function HomeScreen() {
         <StatusBar style="light" />
 
         {showMenu && shouldShowMenu && (
-          <MenuModal visible={showMenu} trigger={handleMenu} />
+          <MenuModal visible={showMenu} trigger={handleMenu} onClose={undefined} />
         )}
 
-        {loading ? (
+        {isLoading ? (
           <Loading />
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={localStyles.scrollContainer}
           >
-            {trending.length > 0 && <TrendingMovies data={trending} />}
-            <MovieList title="Lançamentos" data={upcoming} />
-            <MovieList title="Mais Assistidos" data={topRated} />
+            {data?.results?.length > 0 && <TrendingMovies data={data.results} />}
+            <MovieList title="Lançamentos" data={[]} hiddenSeeAll={undefined} />
+            <MovieList title="Mais Assistidos" data={[]} hiddenSeeAll={undefined} />
           </ScrollView>
         )}
       </View>

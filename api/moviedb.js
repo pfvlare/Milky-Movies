@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { apiKey } from '../constants';
-import { Platform } from 'react-native'; // Importe Platform
+import { apiKey } from '../constants/index';
+import { Platform } from 'react-native';
 
 // Endpoints dos Filmes
 const apiBaseUrl = 'https://api.themoviedb.org/3';
