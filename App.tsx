@@ -17,6 +17,7 @@ export default function App() {
       const user = await AsyncStorage.getItem("@user");
       setInitialScreen(user ? "Login" : "Login");
     };
+
     checkUser();
   }, []);
 
@@ -28,6 +29,7 @@ export default function App() {
     );
   }
 
+  // Se carregou corretamente
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
