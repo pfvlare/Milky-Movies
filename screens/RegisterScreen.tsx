@@ -12,38 +12,15 @@ import {
 } from "react-native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useForm, Controller } from "react-hook-form"
-import { yupResolver } from "@hookform/resolvers/yup"
-import * as yup from "yup"
 import { Ionicons } from "@expo/vector-icons"
 import * as themeConfig from "../theme"
 import Toast from "react-native-toast-message"
 import axios from "axios"
+import { RegisterSchema, RegisterType } from "../schemas/register"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { registerUser } from "../api/services/user/register"
 
 const theme = themeConfig.theme
-
-const schema = yup.object().shape({
-  firstname: yup.string().required("Nome é obrigatório"),
-  lastname: yup.string().required("Sobrenome é obrigatório"),
-  email: yup.string().email("Email inválido").required("Email é obrigatório"),
-  password: yup
-    .string()
-    .matches(/^\d{6}$/, "A senha deve ter exatamente 6 números")
-    .required("Senha é obrigatória"),
-  phone: yup
-    .string()
-    .matches(/^\d{11}$/, "Digite 11 números")
-    .required("Telefone é obrigatório"),
-  address: yup.string().required("Endereço é obrigatório"),
-})
-
-type FormData = {
-  firstname: string
-  lastname: string
-  email: string
-  password: string
-  phone: string
-  address: string
-}
 
 const styles = StyleSheet.create({
   container: {
@@ -123,24 +100,14 @@ export default function RegisterScreen({ navigation }) {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormData>({ resolver: yupResolver(schema) })
+  } = useForm<RegisterType>({ resolver: zodResolver(RegisterSchema) })
 
   const [showPassword, setShowPassword] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: RegisterType) => {
     try {
-      const payload = {
-        firstname: data.firstname,
-        lastname: data.lastname,
-        email: data.email.toLowerCase(),
-        password: data.password,
-        phone: data.phone,
-        address: data.address,
-      };
-
-      const response = await axios.post("http://localhost:3000/user/register", payload);
-      const result = response.data;
+      const result = await registerUser(data);
 
       if (!result?.id) throw new Error("ID do usuário não retornado.");
 
@@ -175,12 +142,13 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
+
   const handleMenu = () => {
     setShowMenu(!showMenu)
   }
 
   const fields: {
-    name: keyof FormData
+    name: keyof RegisterType
     placeholder: string
     keyboardType?: KeyboardTypeOptions
     maxLength?: number

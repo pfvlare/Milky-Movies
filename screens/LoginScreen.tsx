@@ -9,18 +9,11 @@ import {
   Alert,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
+import { zodResolver } from "@hookform/resolvers/zod";
 import AppLayout from "../components/AppLayout";
 import { Ionicons } from "@expo/vector-icons";
-
-const schema = yup.object().shape({
-  email: yup.string().email("Email inválido").required("Obrigatório"),
-  password: yup
-    .string()
-    .matches(/^\d{6}$/, "A senha deve ter exatamente 6 números")
-    .required("Obrigatório"),
-});
+import { loginUser } from "../api/services/user/login";
+import { LoginType, LoginSchema } from "../schemas/login";
 
 const styles = StyleSheet.create({
   container: {
@@ -98,38 +91,21 @@ export default function LoginScreen({ navigation }) {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm({ resolver: yupResolver(schema) });
+  } = useForm<LoginType>({ resolver: zodResolver(LoginSchema) });
 
   const [showPassword, setShowPassword] = useState(false);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: LoginType) => {
     try {
-      const response = await fetch("http://localhost:3000/user/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-        }),
-      });
+      const user = await loginUser({ email: data.email, password: data.password });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result?.message || "Usuário não retornado na resposta.");
-      }
-
-      const user = result;
-
-      if (user.email) {
+      if (user?.id) {
         navigation.replace("Home");
       } else {
         navigation.replace("Register");
       }
-    } catch (error) {
-      Alert.alert("Erro", error?.message || "Não foi possível conectar com o servidor.");
+    } catch (error: any) {
+      Alert.alert("Erro", error.message);
       console.error("❌ Erro ao logar:", error);
     }
   };
