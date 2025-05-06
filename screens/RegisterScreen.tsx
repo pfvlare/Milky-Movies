@@ -137,45 +137,43 @@ export default function RegisterScreen({ navigation }) {
         password: data.password,
         phone: data.phone,
         address: data.address,
-      }
+      };
 
-      const response = await axios.post("http://localhost:3000/user/register", payload)
+      const response = await axios.post("http://localhost:3000/user/register", payload);
+      const result = response.data;
 
-      const result = response.data
-
-      if (!result) {
-        throw new Error()
-      }
+      if (!result?.id) throw new Error("ID do usuário não retornado.");
 
       await AsyncStorage.setItem(
         "@user",
         JSON.stringify({
+          id: result.id,
           name: `${data.firstname} ${data.lastname}`,
           email: data.email,
           isSubscribed: false,
         })
-      )
+      );
 
       Toast.show({
         type: "success",
         text1: "Cadastro realizado com sucesso!",
-      })
-      navigation.replace("Subscription")
+      });
+
+      navigation.replace("Subscription", { userId: result.id });
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        "Erro inesperado, tente novamente."
+        "Erro inesperado, tente novamente.";
 
       Toast.show({
         type: "error",
         text1: "Erro no cadastro",
         text2: message,
-      })
-      console.error("❌ Erro no cadastro:", error)
+      });
+      console.error("❌ Erro no cadastro:", error);
     }
-  }
-
+  };
 
   const handleMenu = () => {
     setShowMenu(!showMenu)

@@ -17,6 +17,8 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Ionicons } from "@expo/vector-icons";
 import * as themeConfig from "../theme";
+import axios from "axios";
+import { useRoute, RouteProp } from "@react-navigation/native";
 
 const theme = themeConfig.theme;
 
@@ -113,21 +115,31 @@ export default function SubscriptionScreen({ navigation }) {
   } = useForm({ resolver: yupResolver(schema) });
 
   const [showMenu, setShowMenu] = useState(false);
+  type SubscriptionScreenRouteProp = RouteProp<{ params: { userId: string } }, 'params'>;
+  const route = useRoute<SubscriptionScreenRouteProp>();
+  const { userId } = route.params;
 
   const onSubmit = async (data) => {
     try {
-      const userData = await AsyncStorage.getItem("@user");
-      if (!userData) return;
+      if (!userId) {
+        Alert.alert("Erro", "Usuário não identificado.");
+        return;
+      }
 
-      const updatedUser = {
-        ...JSON.parse(userData),
-        isSubscribed: true,
-        subscription: {
-          cardNumber: data.cardNumber,
-          cvv: data.cvv,
-          expiry: data.expiry,
-        },
-      };
+      const [month, year] = data.expiry.split("/");
+      const expiryDate = new Date(Number(`20${year}`), Number(month) - 1);
+
+      await axios.post("http://localhost:3000/card", {
+        cardNumber: data.cardNumber,
+        securityCode: data.cvv,
+        expiresDate: expiryDate,
+        nameCard: "Cartão Principal",
+        userId: userId,
+      });
+
+      const userData = await AsyncStorage.getItem("@user");
+      const parsedUser = userData ? JSON.parse(userData) : {};
+      const updatedUser = { ...parsedUser, isSubscribed: true };
 
       await AsyncStorage.setItem("@user", JSON.stringify(updatedUser));
       await AsyncStorage.setItem("@isLoggedIn", "true");
@@ -136,6 +148,7 @@ export default function SubscriptionScreen({ navigation }) {
       navigation.reset({ index: 0, routes: [{ name: "Home" }] });
     } catch (e) {
       Alert.alert("Erro", "Não foi possível processar a assinatura.");
+      console.error("❌ Subscription error:", e);
     }
   };
 
@@ -161,27 +174,26 @@ export default function SubscriptionScreen({ navigation }) {
           <Text style={styles.subtitle}>Assinatura</Text>
         </View>
 
-        {/* Campos do cartão */}
         {[
           {
-            name: "cardNumber" as const,
+            name: "cardNumber",
             placeholder: "Número do cartão",
             keyboardType: "numeric",
             maxLength: 16,
           },
           {
-            name: "cvv" as const,
+            name: "cvv",
             placeholder: "CVV",
             keyboardType: "numeric",
             maxLength: 3,
           },
           {
-            name: "expiry" as const,
+            name: "expiry",
             placeholder: "Validade (MM/AA)",
             keyboardType: "numeric",
             maxLength: 5,
           },
-        ].map((field) => (
+        ].map((field: { name: "cardNumber" | "cvv" | "expiry"; placeholder: string; keyboardType: KeyboardTypeOptions; maxLength: number }) => (
           <View key={field.name}>
             <Controller
               control={control}
@@ -212,7 +224,7 @@ export default function SubscriptionScreen({ navigation }) {
             />
             {errors[field.name] && (
               <Text style={styles.errorText}>
-                {errors[field.name].message}
+                {errors[field.name]?.message}
               </Text>
             )}
           </View>

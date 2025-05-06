@@ -13,12 +13,27 @@ import SearchScreen from "../screens/SearchScreen";
 import FavoritesScreen from "../screens/FavoritesScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export default function Navigation({ initialRoute = "Splash" }) {
+export type RootStackParamList = {
+  Splash: undefined;
+  Login: undefined;
+  Register: undefined;
+  Subscription: { userId: string };
+  Home: undefined;
+  Movie: { id: string };
+  Person: { id: string };
+  Search: undefined;
+  Favorites: undefined;
+  Profile: undefined;
+};
+
+
+export default function Navigation({ initialRoute = "Splash" }: { initialRoute?: keyof RootStackParamList }) {
   return (
     <NavigationContainer>
       <Stack.Navigator
+        {...({} as any)}
         initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
       >

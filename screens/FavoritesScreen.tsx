@@ -14,6 +14,8 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { fallBackMoviePoster, image185 } from "../api/moviedb";
 import AppLayout from "../components/AppLayout";
 import { Ionicons } from "@expo/vector-icons";
+import { RootStackParamList } from "../Navigation/Navigation";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 const { width, height } = Dimensions.get("window");
 
@@ -74,9 +76,14 @@ const styles = StyleSheet.create({
   },
 });
 
+type FavoritesScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'Movie'
+>;
+
 export default function FavoritesScreen() {
   const [favorites, setFavorites] = useState([]);
-  const navigation = useNavigation();
+  const navigation = useNavigation<FavoritesScreenNavigationProp>();
 
   const loadFavorites = async () => {
     const stored = await AsyncStorage.getItem("favorites");
