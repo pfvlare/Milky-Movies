@@ -13,29 +13,14 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useForm, Controller } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Ionicons } from "@expo/vector-icons";
 import * as themeConfig from "../theme";
-import axios from "axios";
 import { useRoute, RouteProp } from "@react-navigation/native";
+import { registerCard } from "../api/services/card/register";
+import { SubscriptionSchema, SubscriptionType } from "../schemas/card";
 
 const theme = themeConfig.theme;
-
-const schema = yup.object().shape({
-  cardNumber: yup
-    .string()
-    .required("Número do cartão é obrigatório")
-    .length(16, "O número do cartão deve ter 16 dígitos"),
-  cvv: yup
-    .string()
-    .required("CVV é obrigatório")
-    .length(3, "O CVV deve ter exatamente 3 dígitos"),
-  expiry: yup
-    .string()
-    .required("Data de validade é obrigatória")
-    .matches(/^(0[1-9]|1[0-2])\/([0-9]{2})$/, "Formato inválido (MM/AA)"),
-});
 
 const styles = StyleSheet.create({
   container: {
@@ -112,14 +97,15 @@ export default function SubscriptionScreen({ navigation }) {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm({ resolver: yupResolver(schema) });
+  } = useForm<SubscriptionType>({ resolver: zodResolver(SubscriptionSchema) });
 
   const [showMenu, setShowMenu] = useState(false);
+
   type SubscriptionScreenRouteProp = RouteProp<{ params: { userId: string } }, 'params'>;
   const route = useRoute<SubscriptionScreenRouteProp>();
   const { userId } = route.params;
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: SubscriptionType) => {
     try {
       if (!userId) {
         Alert.alert("Erro", "Usuário não identificado.");
@@ -129,10 +115,10 @@ export default function SubscriptionScreen({ navigation }) {
       const [month, year] = data.expiry.split("/");
       const expiryDate = new Date(Number(`20${year}`), Number(month) - 1);
 
-      await axios.post("http://localhost:3000/card", {
+      await registerCard({
         cardNumber: data.cardNumber,
         securityCode: data.cvv,
-        expiresDate: expiryDate,
+        expiresDate: expiryDate.toISOString(),
         nameCard: "Cartão Principal",
         userId: userId,
       });
@@ -145,7 +131,7 @@ export default function SubscriptionScreen({ navigation }) {
       await AsyncStorage.setItem("@isLoggedIn", "true");
 
       Alert.alert("Assinatura confirmada", "Você já pode acessar os filmes!");
-      navigation.reset({ index: 0, routes: [{ name: "Home" }] });
+      navigation.reset({ index: 0, routes: [{ name: "Login" }] });
     } catch (e) {
       Alert.alert("Erro", "Não foi possível processar a assinatura.");
       console.error("❌ Subscription error:", e);
@@ -193,7 +179,7 @@ export default function SubscriptionScreen({ navigation }) {
             keyboardType: "numeric",
             maxLength: 5,
           },
-        ].map((field: { name: "cardNumber" | "cvv" | "expiry"; placeholder: string; keyboardType: KeyboardTypeOptions; maxLength: number }) => (
+        ].map((field: { name: "cardNumber" | "cvv" | "expiry"; placeholder: string; keyboardType: string; maxLength: number }) => (
           <View key={field.name}>
             <Controller
               control={control}
@@ -223,9 +209,7 @@ export default function SubscriptionScreen({ navigation }) {
               )}
             />
             {errors[field.name] && (
-              <Text style={styles.errorText}>
-                {errors[field.name]?.message}
-              </Text>
+              <Text style={styles.errorText}>{errors[field.name]?.message}</Text>
             )}
           </View>
         ))}

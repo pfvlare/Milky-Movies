@@ -14,6 +14,7 @@ import AppLayout from "../components/AppLayout";
 import { Ionicons } from "@expo/vector-icons";
 import { loginUser } from "../api/services/user/login";
 import { LoginType, LoginSchema } from "../schemas/login";
+import { useUserStore } from "../store/userStore";
 
 const styles = StyleSheet.create({
   container: {
@@ -95,11 +96,13 @@ export default function LoginScreen({ navigation }) {
 
   const [showPassword, setShowPassword] = useState(false);
 
+
   const onSubmit = async (data: LoginType) => {
     try {
       const user = await loginUser({ email: data.email, password: data.password });
 
       if (user?.id) {
+        useUserStore.getState().setUser(user);
         navigation.replace("Home");
       } else {
         navigation.replace("Register");

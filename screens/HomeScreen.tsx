@@ -10,7 +10,7 @@ import * as themeConfig from "../theme";
 import { useNavigation, useRoute, NavigationProp } from "@react-navigation/native";
 import AppLayout from "../components/AppLayout";
 import MenuModal from "../components/MenuModal";
-import { useTrendingMovies } from "../hooks/useMovies";
+import { useTopRatedMovies, useTrendingMovies, useUpcomingMovies } from "../hooks/useMovies";
 import Toast from "react-native-toast-message";
 
 const theme = themeConfig.theme;
@@ -65,7 +65,9 @@ export default function HomeScreen() {
   const route = useRoute();
   const shouldShowMenu = !hiddenMenuRoutes.includes(route.name);
 
-  const { data, isLoading, error } = useTrendingMovies();
+  const { data: trendingMovies, isLoading, error } = useTrendingMovies();
+  const { data: upcomingMovies } = useUpcomingMovies();
+  const { data: topRatedMovies } = useTopRatedMovies();
 
   if (error) {
     Toast.show({
@@ -120,9 +122,9 @@ export default function HomeScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={localStyles.scrollContainer}
           >
-            {data?.results?.length > 0 && <TrendingMovies data={data.results} />}
-            <MovieList title="Lançamentos" data={[]} hiddenSeeAll={undefined} />
-            <MovieList title="Mais Assistidos" data={[]} hiddenSeeAll={undefined} />
+            {trendingMovies?.results?.length > 0 && <TrendingMovies data={trendingMovies.results} />}
+            {upcomingMovies?.results?.length > 0 && <MovieList title="Lançamentos" data={upcomingMovies.results} hiddenSeeAll={false} />}
+            {topRatedMovies?.results?.length > 0 && <MovieList title="Mais Assistidos" data={topRatedMovies.results} hiddenSeeAll={false} />}
           </ScrollView>
         )}
       </View>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,12 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import * as themeConfig from "../theme";
+import { useUserStore } from "../store/userStore";
+import { getCardByUserId } from "../api/services/card/get";
+
 const theme = themeConfig.theme;
 
 const styles = StyleSheet.create({
@@ -100,23 +102,38 @@ const styles = StyleSheet.create({
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const [user, setUser] = useState(null);
+  const user = useUserStore((state) => state.user);
+  const clearUser = useUserStore((state) => state.clearUser);
+  const setSubscription = useUserStore((state) => state.setSubscription);
 
   useEffect(() => {
-    const loadUser = async () => {
-      const stored = await AsyncStorage.getItem("@user");
-      if (stored) {
-        setUser(JSON.parse(stored));
+    const fetchCard = async () => {
+      try {
+        if (!user?.id) return;
+
+        const card = await getCardByUserId(user.id);
+
+        // Converte de "2025-12-01T03:00:00.000Z" para "12/25"
+        const date = new Date(card.expiresDate);
+        const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+        const year = String(date.getUTCFullYear()).slice(2);
+        const formattedExpiry = `${month}/${year}`;
+
+        setSubscription({
+          cardNumber: card.cardNumber,
+          expiry: formattedExpiry,
+        });
+      } catch (error) {
+        console.error("Erro ao buscar cartão:", error);
       }
     };
 
-    const unsubscribe = navigation.addListener("focus", loadUser);
-    return unsubscribe;
-  }, [navigation]);
+    fetchCard();
+  }, [user?.id]);
+
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem("@user");
-    await AsyncStorage.removeItem("@isLoggedIn");
+    clearUser();
     navigation.reset({
       index: 0,
       routes: [{ name: "Login" }],
@@ -124,17 +141,14 @@ export default function ProfileScreen() {
   };
 
   const handleCancelSubscription = () => {
-    Alert.alert(
-      "Assinatura",
-      "Assinatura cancelada com sucesso (modo demonstração)."
-    );
+    Alert.alert("Assinatura", "Assinatura cancelada com sucesso (modo demonstração).");
   };
 
   const handleUpdateCard = () => {
     navigation.navigate("Subscription");
   };
 
-  const maskCard = (number) =>
+  const maskCard = (number?: string) =>
     number ? `**** **** **** ${number.slice(-4)}` : "Não informado";
 
   return (
@@ -160,7 +174,7 @@ export default function ProfileScreen() {
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Nome:</Text>
                   <Text style={styles.infoText}>
-                    {user.firstName} {user.lastName}
+                    {user.firstname} {user.lastname}
                   </Text>
                 </View>
                 <View style={styles.infoItem}>
@@ -182,13 +196,13 @@ export default function ProfileScreen() {
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Número:</Text>
                   <Text style={styles.infoText}>
-                    {maskCard(user?.subscription?.cardNumber)}
+                    {maskCard(user.subscription?.cardNumber)}
                   </Text>
                 </View>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Validade:</Text>
                   <Text style={styles.infoText}>
-                    {user?.subscription?.expiry || "Não informado"}
+                    {user.subscription?.expiry || "Não informado"}
                   </Text>
                 </View>
                 <TouchableOpacity style={styles.button} onPress={handleUpdateCard}>

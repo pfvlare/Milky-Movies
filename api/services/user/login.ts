@@ -7,7 +7,8 @@ type LoginResponse = {
     email: string;
     firstname: string;
     lastname: string;
-    token?: string;
+    phone: string;
+    address: string;
 };
 
 export const loginUser = async (payload: LoginType): Promise<LoginResponse> => {
