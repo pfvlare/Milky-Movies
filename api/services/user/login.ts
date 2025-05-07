@@ -1,5 +1,6 @@
 import axios from "axios";
 import { LoginType } from "../../../schemas/login";
+import { BACKEND_URL } from "@env";
 
 type LoginResponse = {
     id: string;
@@ -11,7 +12,7 @@ type LoginResponse = {
 
 export const loginUser = async (payload: LoginType): Promise<LoginResponse> => {
     try {
-        const response = await axios.post<LoginResponse>("http://localhost:3000/user/login", payload);
+        const response = await axios.post<LoginResponse>(`${BACKEND_URL}/user/login`, payload);
         return response.data;
     } catch (error: any) {
         const message =
