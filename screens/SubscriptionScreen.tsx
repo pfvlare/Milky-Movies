@@ -19,6 +19,10 @@ import * as themeConfig from "../theme";
 import { useRoute, RouteProp } from "@react-navigation/native";
 import { registerCard } from "../api/services/card/register";
 import { SubscriptionSchema, SubscriptionType } from "../schemas/card";
+import { useUserStore } from "../store/userStore";
+import { editCard } from "../api/services/card/edit";
+import Toast from "react-native-toast-message";
+import { formatExpiresCard } from "../utils/formatDate";
 
 const theme = themeConfig.theme;
 
@@ -101,19 +105,48 @@ export default function SubscriptionScreen({ navigation }) {
 
   const [showMenu, setShowMenu] = useState(false);
 
-  type SubscriptionScreenRouteProp = RouteProp<{ params: { userId: string } }, 'params'>;
-  const route = useRoute<SubscriptionScreenRouteProp>();
-  const { userId } = route.params;
+  type SubscriptionScreenRouteParams = {
+    userId?: string;
+  };
+  const route = useRoute<RouteProp<{ params?: SubscriptionScreenRouteParams }, 'params'>>();
+  const userId = route.params?.userId;
+
+  const user = useUserStore((state) => state.user);
+  const setSubscription = useUserStore((state) => state.setSubscription);
 
   const onSubmit = async (data: SubscriptionType) => {
     try {
-      if (!userId) {
+      const [month, year] = data.expiry.split("/");
+      const expiryDate = new Date(Number(`20${year}`), Number(month) - 1);
+
+      if (!userId && !user.id) {
         Alert.alert("Erro", "Usuário não identificado.");
         return;
       }
 
-      const [month, year] = data.expiry.split("/");
-      const expiryDate = new Date(Number(`20${year}`), Number(month) - 1);
+      if (!userId && user.id) {
+        const newCard = await editCard({
+          data: {
+            cardNumber: data.cardNumber,
+            securityCode: data.cvv,
+            expiresDate: expiryDate.toISOString(),
+            nameCard: "Cartão Principal",
+          },
+          userId: user.id
+        });
+
+        setSubscription({
+          cardNumber: newCard.cardNumber,
+          expiry: formatExpiresCard(newCard),
+        });
+
+        Toast.show({
+          text1: "Cartão editado com sucesso!",
+        });
+        navigation.goBack();
+
+        return
+      }
 
       await registerCard({
         cardNumber: data.cardNumber,
@@ -221,7 +254,7 @@ export default function SubscriptionScreen({ navigation }) {
           <Text style={styles.subscribeButtonText}>Assinar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.cancelText}>
             Cancelar? <Text style={styles.cancelLink}>Voltar ao login</Text>
           </Text>

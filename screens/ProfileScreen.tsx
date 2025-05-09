@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as themeConfig from "../theme";
 import { useUserStore } from "../store/userStore";
 import { getCardByUserId } from "../api/services/card/get";
+import { formatExpiresCard } from "../utils/formatDate";
 
 const theme = themeConfig.theme;
 
@@ -113,15 +114,9 @@ export default function ProfileScreen() {
 
         const card = await getCardByUserId(user.id);
 
-        // Converte de "2025-12-01T03:00:00.000Z" para "12/25"
-        const date = new Date(card.expiresDate);
-        const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-        const year = String(date.getUTCFullYear()).slice(2);
-        const formattedExpiry = `${month}/${year}`;
-
         setSubscription({
           cardNumber: card.cardNumber,
-          expiry: formattedExpiry,
+          expiry: formatExpiresCard(card),
         });
       } catch (error) {
         console.error("Erro ao buscar cartão:", error);

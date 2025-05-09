@@ -28,10 +28,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.background,
     paddingTop: Platform.OS === "ios" ? 50 : 30,
     paddingHorizontal: 20,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingBottom: 20,
+    justifyContent: "center",
   },
   header: {
     alignItems: "center",
@@ -54,6 +51,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
+    marginHorizontal: 18
   },
   input: {
     color: "white",
@@ -71,6 +69,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     marginBottom: 16,
+    marginHorizontal: 18
   },
   registerButtonText: {
     color: "white",
@@ -142,11 +141,6 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
-
-  const handleMenu = () => {
-    setShowMenu(!showMenu)
-  }
-
   const fields: {
     name: keyof RegisterType
     placeholder: string
@@ -162,91 +156,82 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity onPress={handleMenu} style={styles.menuButton}>
-        <Ionicons name="menu-outline" size={30} color="white" />
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <Text style={styles.mainTitle}>
+          <Text style={{ color: theme.text }}>M</Text>ilky{" "}
+          <Text style={{ color: theme.text }}>M</Text>ovies
+        </Text>
+        <Text style={styles.subtitle}>Cadastro</Text>
+      </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContainer}
-      >
-        <View style={styles.header}>
-          <Text style={styles.mainTitle}>
-            <Text style={{ color: theme.text }}>M</Text>ilky{" "}
-            <Text style={{ color: theme.text }}>M</Text>ovies
-          </Text>
-          <Text style={styles.subtitle}>Cadastro</Text>
-        </View>
-
-        {fields.map((field) => (
-          <View key={field.name}>
-            <Controller
-              control={control}
-              name={field.name}
-              render={({ field: { onChange, value } }) => (
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    placeholder={field.placeholder}
-                    placeholderTextColor="#6B7280"
-                    style={styles.input}
-                    keyboardType={field.keyboardType}
-                    maxLength={field.maxLength}
-                    onChangeText={onChange}
-                    value={value}
-                  />
-                </View>
-              )}
-            />
-            {errors[field.name] && (
-              <Text style={styles.errorText}>{errors[field.name]?.message}</Text>
-            )}
-          </View>
-        ))}
-
-        <View>
+      {fields.map((field) => (
+        <View key={field.name}>
           <Controller
             control={control}
-            name="password"
+            name={field.name}
             render={({ field: { onChange, value } }) => (
               <View style={styles.inputContainer}>
                 <TextInput
-                  placeholder="Senha (6 dígitos)"
+                  placeholder={field.placeholder}
                   placeholderTextColor="#6B7280"
-                  secureTextEntry={!showPassword}
                   style={styles.input}
-                  keyboardType="numeric"
-                  maxLength={6}
+                  keyboardType={field.keyboardType}
+                  maxLength={field.maxLength}
                   onChangeText={onChange}
                   value={value}
                 />
-                <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
-                  <Ionicons
-                    name={showPassword ? "eye-off" : "eye"}
-                    size={22}
-                    color="#9CA3AF"
-                  />
-                </TouchableOpacity>
               </View>
             )}
           />
-          {errors.password && (
-            <Text style={styles.errorText}>{errors.password.message}</Text>
+          {errors[field.name] && (
+            <Text style={styles.errorText}>{errors[field.name]?.message}</Text>
           )}
         </View>
+      ))}
 
-        <TouchableOpacity
-          style={styles.registerButton}
-          onPress={handleSubmit(onSubmit)}
-        >
-          <Text style={styles.registerButtonText}>Continuar</Text>
-        </TouchableOpacity>
+      <View>
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.inputContainer}>
+              <TextInput
+                placeholder="Senha (6 dígitos)"
+                placeholderTextColor="#6B7280"
+                secureTextEntry={!showPassword}
+                style={styles.input}
+                keyboardType="numeric"
+                maxLength={6}
+                onChangeText={onChange}
+                value={value}
+              />
+              <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
+                <Ionicons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={22}
+                  color="#9CA3AF"
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+        {errors.password && (
+          <Text style={styles.errorText}>{errors.password.message}</Text>
+        )}
+      </View>
 
-        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-          <Text style={styles.loginText}>
-            Já tem conta? <Text style={styles.loginLink}>Login</Text>
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+      <TouchableOpacity
+        style={styles.registerButton}
+        onPress={handleSubmit(onSubmit)}
+      >
+        <Text style={styles.registerButtonText}>Continuar</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+        <Text style={styles.loginText}>
+          Já tem conta? <Text style={styles.loginLink}>Login</Text>
+        </Text>
+      </TouchableOpacity>
     </SafeAreaView>
   )
 }
