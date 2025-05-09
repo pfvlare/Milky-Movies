@@ -17,11 +17,12 @@ import * as themeConfig from "../theme";
 import { useUserStore } from "../store/userStore";
 import { getCardByUserId } from "../api/services/card/get";
 import { RootStackParamList } from "../Navigation/Navigation";
-import { StackNavigationProp } from "@react-navigation/native-stack";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { formatExpiresCard } from "../utils/formatDate";
 
 const theme = themeConfig.theme;
 
-type NavProp = StackNavigationProp<RootStackParamList, "Profile">;
+type NavProp = NativeStackNavigationProp<RootStackParamList, "Profile">;
 
 const styles = StyleSheet.create({
   container: {
@@ -126,14 +127,10 @@ export default function ProfileScreen() {
         if (!user?.id) return;
 
         const card = await getCardByUserId(user.id);
-        const date = new Date(card.expiresDate);
-        const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-        const year = String(date.getUTCFullYear()).slice(2);
-        const formattedExpiry = `${month}/${year}`;
 
         setSubscription({
           cardNumber: card.cardNumber,
-          expiry: formattedExpiry,
+          expiry: formatExpiresCard(card),
           planName: card.planName || "Padrão",
           planPrice: card.planPrice || "R$ --",
           isActive: card.isActive ?? true,

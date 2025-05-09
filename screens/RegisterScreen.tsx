@@ -21,12 +21,12 @@ import { RegisterSchema, RegisterType } from "../schemas/register";
 import { registerUser } from "../api/services/user/register";
 
 import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/native-stack";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/Navigation";
 
 const theme = themeConfig.theme;
 
-type NavigationProp = StackNavigationProp<RootStackParamList, "Register">;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Register">;
 type RegisterScreenRouteProp = RouteProp<RootStackParamList, "Register">;
 
 const styles = StyleSheet.create({
@@ -35,10 +35,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.background,
     paddingTop: Platform.OS === "ios" ? 50 : 30,
     paddingHorizontal: 20,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingBottom: 20,
+    justifyContent: "center",
   },
   header: {
     alignItems: "center",
@@ -61,6 +58,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
+    marginHorizontal: 18
   },
   input: {
     color: "white",
@@ -78,6 +76,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     marginBottom: 16,
+    marginHorizontal: 18
   },
   registerButtonText: {
     color: "white",
@@ -209,98 +208,123 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContainer}
-      >
-        <View style={styles.header}>
-          <Text style={styles.mainTitle}>
-            <Text style={{ color: theme.text }}>M</Text>ilky{" "}
-            <Text style={{ color: theme.text }}>M</Text>ovies
-          </Text>
-          <Text style={styles.subtitle}>Cadastro</Text>
-        </View>
+      <View style={styles.header}>
+        <Text style={styles.mainTitle}>
+          <Text style={{ color: theme.text }}>M</Text>ilky{" "}
+          <Text style={{ color: theme.text }}>M</Text>ovies
+        </Text>
+        <Text style={styles.subtitle}>Cadastro</Text>
+      </View>
 
-        <View style={styles.selectedPlanBox}>
-          <Text style={styles.planLabel}>Plano Selecionado</Text>
-          <Text style={styles.planName}>
-            {selectedPlan.name} - {selectedPlan.price}
-          </Text>
-        </View>
+      <View style={styles.selectedPlanBox}>
+        <Text style={styles.planLabel}>Plano Selecionado</Text>
+        <Text style={styles.planName}>
+          {selectedPlan.name} - {selectedPlan.price}
+        </Text>
+      </View>
 
-        {fields.map((field) => (
-          <View key={field.name}>
-            <Controller
-              control={control}
-              name={field.name}
-              render={({ field: { onChange, value } }) => (
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    placeholder={field.placeholder}
-                    placeholderTextColor="#6B7280"
-                    style={styles.input}
-                    keyboardType={field.keyboardType}
-                    maxLength={field.maxLength}
-                    onChangeText={onChange}
-                    value={value}
-                  />
-                </View>
-              )}
-            />
-            {errors[field.name] && (
-              <Text style={styles.errorText}>
-                {errors[field.name]?.message}
-              </Text>
-            )}
-          </View>
-        ))}
-
-        <View>
+      {fields.map((field) => (
+        <View key={field.name}>
           <Controller
             control={control}
-            name="password"
+            name={field.name}
             render={({ field: { onChange, value } }) => (
               <View style={styles.inputContainer}>
                 <TextInput
-                  placeholder="Senha (6 dígitos)"
+                  placeholder={field.placeholder}
                   placeholderTextColor="#6B7280"
-                  secureTextEntry={!showPassword}
                   style={styles.input}
-                  keyboardType="numeric"
-                  maxLength={6}
+                  keyboardType={field.keyboardType}
+                  maxLength={field.maxLength}
                   onChangeText={onChange}
                   value={value}
                 />
-                <TouchableOpacity
-                  onPress={() => setShowPassword((prev) => !prev)}
-                >
-                  <Ionicons
-                    name={showPassword ? "eye-off" : "eye"}
-                    size={22}
-                    color="#9CA3AF"
-                  />
-                </TouchableOpacity>
               </View>
             )}
           />
-          {errors.password && (
-            <Text style={styles.errorText}>{errors.password.message}</Text>
+          {errors[field.name] && (
+            <Text style={styles.errorText}>
+              {errors[field.name]?.message}
+            </Text>
           )}
         </View>
+      ))}
 
-        <TouchableOpacity
-          style={styles.registerButton}
-          onPress={handleSubmit(onSubmit)}
-        >
-          <Text style={styles.registerButtonText}>Continuar</Text>
-        </TouchableOpacity>
+      <View>
+        <Controller
+          control={control}
+          name={field.name}
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.inputContainer}>
+              <TextInput
+                placeholder={field.placeholder}
+                placeholderTextColor="#6B7280"
+                style={styles.input}
+                keyboardType={field.keyboardType}
+                maxLength={field.maxLength}
+                onChangeText={onChange}
+                value={value}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword((prev) => !prev)}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={22}
+                  color="#9CA3AF"
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+        {errors[field.name] && (
+          <Text style={styles.errorText}>{errors[field.name]?.message}</Text>
+        )}
+      </View>
 
-        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-          <Text style={styles.loginText}>
-            Já tem conta? <Text style={styles.loginLink}>Login</Text>
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+      <View>
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.inputContainer}>
+              <TextInput
+                placeholder="Senha (6 dígitos)"
+                placeholderTextColor="#6B7280"
+                secureTextEntry={!showPassword}
+                style={styles.input}
+                keyboardType="numeric"
+                maxLength={6}
+                onChangeText={onChange}
+                value={value}
+              />
+              <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
+                <Ionicons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={22}
+                  color="#9CA3AF"
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+        {errors.password && (
+          <Text style={styles.errorText}>{errors.password.message}</Text>
+        )}
+      </View>
+
+      <TouchableOpacity
+        style={styles.registerButton}
+        onPress={handleSubmit(onSubmit)}
+      >
+        <Text style={styles.registerButtonText}>Continuar</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+        <Text style={styles.loginText}>
+          Já tem conta? <Text style={styles.loginLink}>Login</Text>
+        </Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }

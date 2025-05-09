@@ -7,13 +7,14 @@ import {
   SafeAreaView,
   StyleSheet,
   Alert,
+  Platform,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import {
-  StackNavigationProp,
+  NativeStackNavigationProp
 } from "@react-navigation/native-stack";
 
 import AppLayout from "../components/AppLayout";
@@ -21,15 +22,17 @@ import { loginUser } from "../api/services/user/login";
 import { LoginType, LoginSchema } from "../schemas/login";
 import { useUserStore } from "../store/userStore";
 import { RootStackParamList } from "../Navigation/Navigation";
+import { theme } from "../theme";
 
-type NavigationProp = StackNavigationProp<RootStackParamList, "Login">;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#111827",
+    backgroundColor: theme.background,
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
+    paddingHorizontal: 20,
     justifyContent: "center",
-    paddingHorizontal: 24,
   },
   titleContainer: {
     alignItems: "center",
@@ -44,6 +47,7 @@ const styles = StyleSheet.create({
   subtitle: {
     color: "#6B7280",
     fontSize: 18,
+    marginBottom: 10
   },
   inputContainer: {
     backgroundColor: "#374151",
@@ -52,6 +56,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
+    marginHorizontal: 18
   },
   input: {
     color: "white",
@@ -69,6 +74,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     marginBottom: 16,
+    marginHorizontal: 18
   },
   loginButtonText: {
     color: "white",

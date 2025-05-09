@@ -14,19 +14,21 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Ionicons } from "@expo/vector-icons";
 import * as themeConfig from "../theme";
 import { useRoute, RouteProp, useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/native-stack";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { registerCard } from "../api/services/card/register";
 import { SubscriptionSchema, SubscriptionType } from "../schemas/card";
 import { RootStackParamList } from "../Navigation/Navigation";
+import { useUserStore } from "../store/userStore";
+import { editCard } from "../api/services/card/edit";
+import { formatExpiresCard } from "../utils/formatDate";
+import Toast from "react-native-toast-message";
 
 const theme = themeConfig.theme;
 
-type NavProp = StackNavigationProp<RootStackParamList, "Subscription">;
-type SubscriptionRouteProp = RouteProp<RootStackParamList, "Subscription">;
+type NavProp = NativeStackNavigationProp<RootStackParamList, "Subscription">;
 
 const styles = StyleSheet.create({
   container: {
@@ -100,9 +102,6 @@ const styles = StyleSheet.create({
 
 export default function SubscriptionScreen() {
   const navigation = useNavigation<NavProp>();
-  const route = useRoute<SubscriptionRouteProp>();
-  const { userId } = route.params;
-
   const {
     control,
     handleSubmit,
@@ -111,17 +110,48 @@ export default function SubscriptionScreen() {
     resolver: zodResolver(SubscriptionSchema),
   });
 
-  const [showMenu, setShowMenu] = useState(false);
+  type SubscriptionScreenRouteParams = {
+    userId?: string;
+  };
+  const route = useRoute<RouteProp<{ params?: SubscriptionScreenRouteParams }, 'params'>>();
+  const userId = route.params?.userId;
+
+  const user = useUserStore((state) => state.user);
+  const setSubscription = useUserStore((state) => state.setSubscription);
 
   const onSubmit = async (data: SubscriptionType) => {
     try {
-      if (!userId) {
+      const [month, year] = data.expiry.split("/");
+      const expiryDate = new Date(Number(`20${year}`), Number(month) - 1);
+
+      if (!userId && !user.id) {
         Alert.alert("Erro", "Usuário não identificado.");
         return;
       }
 
-      const [month, year] = data.expiry.split("/");
-      const expiryDate = new Date(Number(`20${year}`), Number(month) - 1);
+      if (!userId && user.id) {
+        const newCard = await editCard({
+          data: {
+            cardNumber: data.cardNumber,
+            securityCode: data.cvv,
+            expiresDate: expiryDate.toISOString(),
+            nameCard: "Cartão Principal",
+          },
+          userId: user.id
+        });
+
+        setSubscription({
+          cardNumber: newCard.cardNumber,
+          expiry: formatExpiresCard(newCard),
+        });
+
+        Toast.show({
+          text1: "Cartão editado com sucesso!",
+        });
+        navigation.goBack();
+
+        return
+      }
 
       await registerCard({
         cardNumber: data.cardNumber,
@@ -174,13 +204,6 @@ export default function SubscriptionScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity
-        onPress={() => setShowMenu((p) => !p)}
-        style={styles.menuButton}
-      >
-        <Ionicons name="menu-outline" size={30} color="white" />
-      </TouchableOpacity>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
@@ -238,7 +261,7 @@ export default function SubscriptionScreen() {
           <Text style={styles.subscribeButtonText}>Assinar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.cancelText}>
             Cancelar? <Text style={styles.cancelLink}>Voltar ao login</Text>
           </Text>

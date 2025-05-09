@@ -8,10 +8,10 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/native-stack";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/Navigation";
 
-type NavigationProp = StackNavigationProp<RootStackParamList, "Splash">;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Splash">;
 
 const styles = StyleSheet.create({
   container: {
