@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,18 +9,25 @@ import {
   StyleSheet,
   Platform,
   KeyboardTypeOptions,
-} from "react-native"
-import AsyncStorage from "@react-native-async-storage/async-storage"
-import { useForm, Controller } from "react-hook-form"
-import { Ionicons } from "@expo/vector-icons"
-import * as themeConfig from "../theme"
-import Toast from "react-native-toast-message"
-import axios from "axios"
-import { RegisterSchema, RegisterType } from "../schemas/register"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { registerUser } from "../api/services/user/register"
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useForm, Controller } from "react-hook-form";
+import { Ionicons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-const theme = themeConfig.theme
+import * as themeConfig from "../theme";
+import { RegisterSchema, RegisterType } from "../schemas/register";
+import { registerUser } from "../api/services/user/register";
+
+import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../Navigation/Navigation";
+
+const theme = themeConfig.theme;
+
+type NavigationProp = StackNavigationProp<RootStackParamList, "Register">;
+type RegisterScreenRouteProp = RouteProp<RootStackParamList, "Register">;
 
 const styles = StyleSheet.create({
   container: {
@@ -86,24 +93,36 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontWeight: "bold",
   },
-  menuButton: {
-    position: "absolute",
-    top: Platform.OS === "ios" ? 16 : 8,
-    right: 16,
-    zIndex: 10,
-    padding: 8,
+  selectedPlanBox: {
+    backgroundColor: "#1F2937",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
   },
-})
+  planLabel: {
+    color: "#9CA3AF",
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  planName: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+});
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterScreen() {
+  const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RegisterScreenRouteProp>();
+  const selectedPlan = route.params?.selectedPlan;
+
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<RegisterType>({ resolver: zodResolver(RegisterSchema) })
+  } = useForm<RegisterType>({ resolver: zodResolver(RegisterSchema) });
 
-  const [showPassword, setShowPassword] = useState(false)
-  const [showMenu, setShowMenu] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async (data: RegisterType) => {
     try {
@@ -142,30 +161,54 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
-
-  const handleMenu = () => {
-    setShowMenu(!showMenu)
-  }
-
   const fields: {
-    name: keyof RegisterType
-    placeholder: string
-    keyboardType?: KeyboardTypeOptions
-    maxLength?: number
+    name: keyof RegisterType;
+    placeholder: string;
+    keyboardType?: KeyboardTypeOptions;
+    maxLength?: number;
   }[] = [
       { name: "firstname", placeholder: "Nome" },
       { name: "lastname", placeholder: "Sobrenome" },
       { name: "email", placeholder: "Email", keyboardType: "email-address" },
-      { name: "phone", placeholder: "Telefone", keyboardType: "numeric", maxLength: 11 },
+      {
+        name: "phone",
+        placeholder: "Telefone",
+        keyboardType: "numeric",
+        maxLength: 11,
+      },
       { name: "address", placeholder: "Endereço" },
-    ]
+    ];
+
+  // Fallback visual se não houver plano
+  if (!selectedPlan) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 20,
+          }}
+        >
+          <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
+            Nenhum plano foi selecionado. Por favor, volte e escolha um plano
+            antes de continuar.
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.registerButton, { marginTop: 24 }]}
+            onPress={() => navigation.replace("ChoosePlan")}
+          >
+            <Text style={styles.registerButtonText}>Voltar</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity onPress={handleMenu} style={styles.menuButton}>
-        <Ionicons name="menu-outline" size={30} color="white" />
-      </TouchableOpacity>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
@@ -176,6 +219,13 @@ export default function RegisterScreen({ navigation }) {
             <Text style={{ color: theme.text }}>M</Text>ovies
           </Text>
           <Text style={styles.subtitle}>Cadastro</Text>
+        </View>
+
+        <View style={styles.selectedPlanBox}>
+          <Text style={styles.planLabel}>Plano Selecionado</Text>
+          <Text style={styles.planName}>
+            {selectedPlan.name} - {selectedPlan.price}
+          </Text>
         </View>
 
         {fields.map((field) => (
@@ -198,7 +248,9 @@ export default function RegisterScreen({ navigation }) {
               )}
             />
             {errors[field.name] && (
-              <Text style={styles.errorText}>{errors[field.name]?.message}</Text>
+              <Text style={styles.errorText}>
+                {errors[field.name]?.message}
+              </Text>
             )}
           </View>
         ))}
@@ -219,7 +271,9 @@ export default function RegisterScreen({ navigation }) {
                   onChangeText={onChange}
                   value={value}
                 />
-                <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
+                <TouchableOpacity
+                  onPress={() => setShowPassword((prev) => !prev)}
+                >
                   <Ionicons
                     name={showPassword ? "eye-off" : "eye"}
                     size={22}
@@ -248,5 +302,5 @@ export default function RegisterScreen({ navigation }) {
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
-  )
+  );
 }

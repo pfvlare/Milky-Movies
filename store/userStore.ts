@@ -1,8 +1,13 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Subscription {
     cardNumber?: string;
     expiry?: string;
+    planName?: string;
+    planPrice?: string;
+    isActive?: boolean;
 }
 
 interface User {
@@ -22,25 +27,33 @@ interface UserStore {
     clearUser: () => void;
 }
 
-export const useUserStore = create<UserStore>((set) => ({
-    user: null,
+export const useUserStore = create<UserStore>()(
+    persist(
+        (set, get) => ({
+            user: null,
 
-    setUser: (user) => set({ user }),
+            setUser: (user) => set({ user }),
 
-    setSubscription: (subscription) =>
-        set((state) =>
-            state.user
-                ? {
-                    user: {
-                        ...state.user,
-                        subscription: {
-                            ...state.user.subscription,
-                            ...subscription,
-                        },
-                    },
-                }
-                : state
-        ),
+            setSubscription: (subscription) =>
+                set((state) =>
+                    state.user
+                        ? {
+                            user: {
+                                ...state.user,
+                                subscription: {
+                                    ...state.user.subscription,
+                                    ...subscription,
+                                },
+                            },
+                        }
+                        : state
+                ),
 
-    clearUser: () => set({ user: null }),
-}));
+            clearUser: () => set({ user: null }),
+        }),
+        {
+            name: "milky-user-store",
+            storage: AsyncStorage,
+        }
+    )
+);

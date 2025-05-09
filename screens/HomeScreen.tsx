@@ -1,5 +1,11 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -7,17 +13,26 @@ import TrendingMovies from "../components/trendingMovies";
 import MovieList from "../components/movieList";
 import Loading from "../components/loading";
 import * as themeConfig from "../theme";
-import { useNavigation, useRoute, NavigationProp } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  NavigationProp,
+  RouteProp,
+} from "@react-navigation/native";
 import AppLayout from "../components/AppLayout";
 import MenuModal from "../components/MenuModal";
-import { useTopRatedMovies, useTrendingMovies, useUpcomingMovies } from "../hooks/useMovies";
+import {
+  useTopRatedMovies,
+  useTrendingMovies,
+  useUpcomingMovies,
+} from "../hooks/useMovies";
 import Toast from "react-native-toast-message";
 
 const theme = themeConfig.theme;
 
 const hiddenMenuRoutes = ["Login", "Register", "Splash", "Subscription"];
 
-const localStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
@@ -60,9 +75,9 @@ type RootStackParamList = {
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<Record<string, object | undefined>, string>>();
   const [showMenu, setShowMenu] = useState(false);
 
-  const route = useRoute();
   const shouldShowMenu = !hiddenMenuRoutes.includes(route.name);
 
   const { data: trendingMovies, isLoading, error } = useTrendingMovies();
@@ -76,14 +91,14 @@ export default function HomeScreen() {
     });
   }
 
-  const handleMenu = () => setShowMenu(!showMenu);
+  const handleMenu = () => setShowMenu((prev) => !prev);
 
   return (
     <AppLayout>
-      <View style={localStyles.container}>
-        <View style={localStyles.header}>
+      <View style={styles.container}>
+        <View style={styles.header}>
           <TouchableOpacity
-            style={localStyles.menuButton}
+            style={styles.menuButton}
             onPress={handleMenu}
             disabled={!shouldShowMenu}
           >
@@ -94,15 +109,15 @@ export default function HomeScreen() {
             )}
           </TouchableOpacity>
 
-          <View style={localStyles.titleContainer}>
-            <Text style={localStyles.mainTitle}>
-              <Text style={localStyles.pinkText}>M</Text>ilky{" "}
-              <Text style={localStyles.pinkText}>M</Text>ovies
+          <View style={styles.titleContainer}>
+            <Text style={styles.mainTitle}>
+              <Text style={styles.pinkText}>M</Text>ilky{" "}
+              <Text style={styles.pinkText}>M</Text>ovies
             </Text>
           </View>
 
           <TouchableOpacity
-            style={localStyles.searchButton}
+            style={styles.searchButton}
             onPress={() => navigation.navigate("Search")}
           >
             <Ionicons name="search-outline" size={30} color="white" />
@@ -120,11 +135,25 @@ export default function HomeScreen() {
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={localStyles.scrollContainer}
+            contentContainerStyle={styles.scrollContainer}
           >
-            {trendingMovies?.results?.length > 0 && <TrendingMovies data={trendingMovies.results} />}
-            {upcomingMovies?.results?.length > 0 && <MovieList title="Lançamentos" data={upcomingMovies.results} hiddenSeeAll={false} />}
-            {topRatedMovies?.results?.length > 0 && <MovieList title="Mais Assistidos" data={topRatedMovies.results} hiddenSeeAll={false} />}
+            {trendingMovies?.results?.length > 0 && (
+              <TrendingMovies data={trendingMovies.results} />
+            )}
+            {upcomingMovies?.results?.length > 0 && (
+              <MovieList
+                title="Lançamentos"
+                data={upcomingMovies.results}
+                hiddenSeeAll={false}
+              />
+            )}
+            {topRatedMovies?.results?.length > 0 && (
+              <MovieList
+                title="Mais Assistidos"
+                data={topRatedMovies.results}
+                hiddenSeeAll={false}
+              />
+            )}
           </ScrollView>
         )}
       </View>

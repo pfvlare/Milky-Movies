@@ -16,11 +16,17 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Ionicons } from "@expo/vector-icons";
 import * as themeConfig from "../theme";
-import { useRoute, RouteProp } from "@react-navigation/native";
+import { useRoute, RouteProp, useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/native-stack";
+
 import { registerCard } from "../api/services/card/register";
 import { SubscriptionSchema, SubscriptionType } from "../schemas/card";
+import { RootStackParamList } from "../Navigation/Navigation";
 
 const theme = themeConfig.theme;
+
+type NavProp = StackNavigationProp<RootStackParamList, "Subscription">;
+type SubscriptionRouteProp = RouteProp<RootStackParamList, "Subscription">;
 
 const styles = StyleSheet.create({
   container: {
@@ -92,18 +98,20 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function SubscriptionScreen({ navigation }) {
+export default function SubscriptionScreen() {
+  const navigation = useNavigation<NavProp>();
+  const route = useRoute<SubscriptionRouteProp>();
+  const { userId } = route.params;
+
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<SubscriptionType>({ resolver: zodResolver(SubscriptionSchema) });
+  } = useForm<SubscriptionType>({
+    resolver: zodResolver(SubscriptionSchema),
+  });
 
   const [showMenu, setShowMenu] = useState(false);
-
-  type SubscriptionScreenRouteProp = RouteProp<{ params: { userId: string } }, 'params'>;
-  const route = useRoute<SubscriptionScreenRouteProp>();
-  const { userId } = route.params;
 
   const onSubmit = async (data: SubscriptionType) => {
     try {
@@ -120,31 +128,56 @@ export default function SubscriptionScreen({ navigation }) {
         securityCode: data.cvv,
         expiresDate: expiryDate.toISOString(),
         nameCard: "Cartão Principal",
-        userId: userId,
+        userId,
       });
 
-      const userData = await AsyncStorage.getItem("@user");
-      const parsedUser = userData ? JSON.parse(userData) : {};
-      const updatedUser = { ...parsedUser, isSubscribed: true };
+      const stored = await AsyncStorage.getItem("@user");
+      const parsed = stored ? JSON.parse(stored) : {};
+      const updated = { ...parsed, isSubscribed: true };
 
-      await AsyncStorage.setItem("@user", JSON.stringify(updatedUser));
+      await AsyncStorage.setItem("@user", JSON.stringify(updated));
       await AsyncStorage.setItem("@isLoggedIn", "true");
 
-      Alert.alert("Assinatura confirmada", "Você já pode acessar os filmes!");
-      navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+      Alert.alert("Assinatura confirmada", "Bem-vindo(a) ao Milky Movies!");
+      navigation.reset({ index: 0, routes: [{ name: "Home" }] });
     } catch (e) {
-      Alert.alert("Erro", "Não foi possível processar a assinatura.");
       console.error("❌ Subscription error:", e);
+      Alert.alert("Erro", "Não foi possível processar a assinatura.");
     }
   };
 
-  const handleMenu = () => {
-    setShowMenu(!showMenu);
-  };
+  const fields: {
+    name: keyof SubscriptionType;
+    placeholder: string;
+    keyboardType: KeyboardTypeOptions;
+    maxLength: number;
+  }[] = [
+      {
+        name: "cardNumber",
+        placeholder: "Número do cartão",
+        keyboardType: "numeric",
+        maxLength: 16,
+      },
+      {
+        name: "cvv",
+        placeholder: "CVV",
+        keyboardType: "numeric",
+        maxLength: 3,
+      },
+      {
+        name: "expiry",
+        placeholder: "Validade (MM/AA)",
+        keyboardType: "numeric",
+        maxLength: 5,
+      },
+    ];
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity onPress={handleMenu} style={styles.menuButton}>
+      <TouchableOpacity
+        onPress={() => setShowMenu((p) => !p)}
+        style={styles.menuButton}
+      >
         <Ionicons name="menu-outline" size={30} color="white" />
       </TouchableOpacity>
 
@@ -160,26 +193,7 @@ export default function SubscriptionScreen({ navigation }) {
           <Text style={styles.subtitle}>Assinatura</Text>
         </View>
 
-        {[
-          {
-            name: "cardNumber",
-            placeholder: "Número do cartão",
-            keyboardType: "numeric",
-            maxLength: 16,
-          },
-          {
-            name: "cvv",
-            placeholder: "CVV",
-            keyboardType: "numeric",
-            maxLength: 3,
-          },
-          {
-            name: "expiry",
-            placeholder: "Validade (MM/AA)",
-            keyboardType: "numeric",
-            maxLength: 5,
-          },
-        ].map((field: { name: "cardNumber" | "cvv" | "expiry"; placeholder: string; keyboardType: string; maxLength: number }) => (
+        {fields.map((field) => (
           <View key={field.name}>
             <Controller
               control={control}
@@ -190,13 +204,14 @@ export default function SubscriptionScreen({ navigation }) {
                     placeholder={field.placeholder}
                     placeholderTextColor="#6B7280"
                     style={styles.input}
-                    keyboardType={field.keyboardType as KeyboardTypeOptions}
+                    keyboardType={field.keyboardType}
                     maxLength={field.maxLength}
                     value={value}
                     onChangeText={(text) => {
                       if (field.name === "expiry") {
-                        if (text.length === 2 && !text.includes("/")) {
-                          onChange(text + "/");
+                        const sanitized = text.replace(/[^0-9]/g, "");
+                        if (sanitized.length === 2 && !text.includes("/")) {
+                          onChange(`${sanitized}/`);
                         } else {
                           onChange(text);
                         }
@@ -209,7 +224,9 @@ export default function SubscriptionScreen({ navigation }) {
               )}
             />
             {errors[field.name] && (
-              <Text style={styles.errorText}>{errors[field.name]?.message}</Text>
+              <Text style={styles.errorText}>
+                {errors[field.name]?.message as string}
+              </Text>
             )}
           </View>
         ))}

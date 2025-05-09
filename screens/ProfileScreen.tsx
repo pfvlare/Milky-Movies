@@ -11,11 +11,17 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import * as themeConfig from "../theme";
 import { useUserStore } from "../store/userStore";
 import { getCardByUserId } from "../api/services/card/get";
+import { RootStackParamList } from "../Navigation/Navigation";
+import { StackNavigationProp } from "@react-navigation/native-stack";
 
 const theme = themeConfig.theme;
+
+type NavProp = StackNavigationProp<RootStackParamList, "Profile">;
 
 const styles = StyleSheet.create({
   container: {
@@ -68,6 +74,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 8,
   },
+  statusActive: {
+    color: "#10B981",
+    fontWeight: "bold",
+  },
+  statusInactive: {
+    color: "#EF4444",
+    fontWeight: "bold",
+  },
   button: {
     backgroundColor: theme.text,
     paddingVertical: 14,
@@ -96,24 +110,22 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "white",
     textAlign: "center",
-    marginTop: 40,
+    fontSize: 16,
   },
 });
 
 export default function ProfileScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavProp>();
   const user = useUserStore((state) => state.user);
   const clearUser = useUserStore((state) => state.clearUser);
   const setSubscription = useUserStore((state) => state.setSubscription);
 
   useEffect(() => {
-    const fetchCard = async () => {
+    const fetchInfo = async () => {
       try {
         if (!user?.id) return;
 
         const card = await getCardByUserId(user.id);
-
-        // Converte de "2025-12-01T03:00:00.000Z" para "12/25"
         const date = new Date(card.expiresDate);
         const month = String(date.getUTCMonth() + 1).padStart(2, "0");
         const year = String(date.getUTCFullYear()).slice(2);
@@ -122,22 +134,39 @@ export default function ProfileScreen() {
         setSubscription({
           cardNumber: card.cardNumber,
           expiry: formattedExpiry,
+          planName: card.planName || "Padrão",
+          planPrice: card.planPrice || "R$ --",
+          isActive: card.isActive ?? true,
         });
+
+        const pending = await AsyncStorage.getItem("@pendingChange");
+
+        if (pending) {
+          const parsed = JSON.parse(pending);
+
+          if (parsed?.userId === user.id && parsed?.newPlan) {
+            setSubscription((prev) => ({
+              ...prev,
+              planName: parsed.newPlan.name,
+              planPrice: parsed.newPlan.price,
+            }));
+
+            await AsyncStorage.removeItem("@pendingChange");
+
+            Alert.alert("Plano Atualizado", `Você agora está no plano ${parsed.newPlan.name}`);
+          }
+        }
       } catch (error) {
-        console.error("Erro ao buscar cartão:", error);
+        console.error("Erro ao buscar dados:", error);
       }
     };
 
-    fetchCard();
+    fetchInfo();
   }, [user?.id]);
 
-
-  const handleLogout = async () => {
+  const handleLogout = () => {
     clearUser();
-    navigation.reset({
-      index: 0,
-      routes: [{ name: "Login" }],
-    });
+    navigation.reset({ index: 0, routes: [{ name: "ChoosePlan" }] });
   };
 
   const handleCancelSubscription = () => {
@@ -145,7 +174,9 @@ export default function ProfileScreen() {
   };
 
   const handleUpdateCard = () => {
-    navigation.navigate("Subscription");
+    if (user?.id) {
+      navigation.navigate("Subscription", { userId: user.id });
+    }
   };
 
   const maskCard = (number?: string) =>
@@ -153,7 +184,14 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() =>
+          navigation.canGoBack()
+            ? navigation.goBack()
+            : navigation.navigate("Home")
+        }
+      >
         <Ionicons name="arrow-back" size={24} color="#EC4899" />
       </TouchableOpacity>
 
@@ -167,27 +205,27 @@ export default function ProfileScreen() {
             <Text style={styles.subtitle}>Perfil</Text>
           </View>
 
-          {user ? (
+          {user?.id ? (
             <>
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Dados Pessoais</Text>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Nome:</Text>
                   <Text style={styles.infoText}>
-                    {user.firstname} {user.lastname}
+                    {user.firstname || "Não informado"} {user.lastname || ""}
                   </Text>
                 </View>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Email:</Text>
-                  <Text style={styles.infoText}>{user.email}</Text>
+                  <Text style={styles.infoText}>{user.email || "Não informado"}</Text>
                 </View>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Endereço:</Text>
-                  <Text style={styles.infoText}>{user.address}</Text>
+                  <Text style={styles.infoText}>{user.address || "Não informado"}</Text>
                 </View>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Telefone:</Text>
-                  <Text style={styles.infoText}>{user.phone}</Text>
+                  <Text style={styles.infoText}>{user.phone || "Não informado"}</Text>
                 </View>
               </View>
 
@@ -212,13 +250,43 @@ export default function ProfileScreen() {
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Assinatura</Text>
-                <Text style={styles.subtitle}>Status: Ativa</Text>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Plano:</Text>
+                  <Text style={styles.infoText}>
+                    {user.subscription?.planName || "Não informado"} -{" "}
+                    {user.subscription?.planPrice || "R$ --"}
+                  </Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Status:</Text>
+                  <Text
+                    style={
+                      user.subscription?.isActive
+                        ? styles.statusActive
+                        : styles.statusInactive
+                    }
+                  >
+                    {user.subscription?.isActive ? "Ativa" : "Inativa"}
+                  </Text>
+                </View>
                 <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={handleCancelSubscription}
+                  style={styles.button}
+                  onPress={() => navigation.navigate("ChangePlan")}
                 >
-                  <Text style={styles.buttonText}>Cancelar Assinatura</Text>
+                  <Text style={styles.buttonText}>Trocar Plano de Assinatura</Text>
                 </TouchableOpacity>
+                {user.subscription?.isActive ? (
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={handleCancelSubscription}
+                  >
+                    <Text style={styles.buttonText}>Cancelar Assinatura</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.button} onPress={handleUpdateCard}>
+                    <Text style={styles.buttonText}>Renovar Plano</Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -226,7 +294,19 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </>
           ) : (
-            <Text style={styles.loadingText}>Carregando dados do usuário...</Text>
+            <View style={{ padding: 24 }}>
+              <Text style={styles.loadingText}>Nenhum usuário logado.</Text>
+              <TouchableOpacity
+                style={[styles.button, { marginTop: 20 }]}
+                onPress={async () => {
+                  await AsyncStorage.removeItem("@user");
+                  await AsyncStorage.removeItem("@isLoggedIn");
+                  navigation.reset({ index: 0, routes: [{ name: "ChoosePlan" }] });
+                }}
+              >
+                <Text style={styles.buttonText}>Voltar ao início</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </ScrollView>

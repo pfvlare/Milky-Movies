@@ -8,6 +8,10 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../Navigation/Navigation";
+
+type NavigationProp = StackNavigationProp<RootStackParamList, "Splash">;
 
 const styles = StyleSheet.create({
   container: {
@@ -34,34 +38,47 @@ const styles = StyleSheet.create({
 });
 
 export default function SplashScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
 
   useEffect(() => {
     const waitAndCheckAuth = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 2500)); // espera 2.5 segundos fixos
+      await new Promise((res) => setTimeout(res, 2500));
 
       try {
         const storedUser = await AsyncStorage.getItem("@user");
         const isLoggedIn = await AsyncStorage.getItem("@isLoggedIn");
 
-        if (storedUser && isLoggedIn === "true") {
-          const user = JSON.parse(storedUser);
-          if (user.isSubscribed) {
-            navigation.replace("Home");
-          } else {
-            navigation.replace("Subscription");
-          }
-        } else {
-          navigation.replace("Login");
+        if (!storedUser || isLoggedIn !== "true") {
+          return navigation.replace("Welcome"); // 👈 redireciona para a tela inicial
         }
-      } catch (error) {
-        console.error("Erro ao verificar login:", error);
-        navigation.replace("Login");
+
+        const user = JSON.parse(storedUser);
+
+        if (
+          !user ||
+          typeof user !== "object" ||
+          !user.id ||
+          typeof user.id !== "string" ||
+          !user.email
+        ) {
+          await AsyncStorage.removeItem("@user");
+          await AsyncStorage.removeItem("@isLoggedIn");
+          return navigation.replace("Welcome");
+        }
+
+        if (user.isSubscribed) {
+          return navigation.replace("Home");
+        } else {
+          return navigation.replace("Subscription", { userId: user.id });
+        }
+      } catch (err) {
+        console.error("Erro ao verificar login:", err);
+        navigation.replace("Welcome");
       }
     };
 
     waitAndCheckAuth();
-  }, []);
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
