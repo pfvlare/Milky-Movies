@@ -53,7 +53,18 @@ export const useUserStore = create<UserStore>()(
         }),
         {
             name: "milky-user-store",
-            storage: AsyncStorage,
+            storage: {
+                getItem: async (key) => {
+                    const value = await AsyncStorage.getItem(key);
+                    return value ?? null;
+                },
+                setItem: async (key, value) => {
+                    await AsyncStorage.setItem(key, value); // value já será uma string
+                },
+                removeItem: async (key) => {
+                    await AsyncStorage.removeItem(key);
+                },
+            },
         }
     )
 );

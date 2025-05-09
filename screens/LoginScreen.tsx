@@ -12,10 +12,9 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
-import {
-  NativeStackNavigationProp
-} from "@react-navigation/native-stack";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import AppLayout from "../components/AppLayout";
 import { loginUser } from "../api/services/user/login";
@@ -47,7 +46,7 @@ const styles = StyleSheet.create({
   subtitle: {
     color: "#6B7280",
     fontSize: 18,
-    marginBottom: 10
+    marginBottom: 10,
   },
   inputContainer: {
     backgroundColor: "#374151",
@@ -56,7 +55,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 18
+    marginHorizontal: 18,
   },
   input: {
     color: "white",
@@ -67,6 +66,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#F44336",
     marginBottom: 8,
+    marginHorizontal: 18,
   },
   loginButton: {
     backgroundColor: "#EC4899",
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     marginBottom: 16,
-    marginHorizontal: 18
+    marginHorizontal: 18,
   },
   loginButtonText: {
     color: "white",
@@ -103,16 +103,14 @@ const styles = StyleSheet.create({
 
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
-
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginType>({
-    resolver: zodResolver(LoginSchema),
-  });
+  } = useForm<LoginType>({ resolver: zodResolver(LoginSchema) });
 
   const [showPassword, setShowPassword] = useState(false);
+  const setUser = useUserStore((state) => state.setUser);
 
   const onSubmit = async (data: LoginType) => {
     try {
@@ -122,17 +120,20 @@ export default function LoginScreen() {
       });
 
       if (user?.id) {
-        // salva no store global
-        useUserStore.getState().setUser(user);
+        // ✅ Atualiza Zustand store
+        setUser(user);
 
-        // Se já assinou → Home; senão → Subscription (cartão)
+        // ✅ Salva no AsyncStorage
+        await AsyncStorage.setItem("@user", JSON.stringify(user));
+        await AsyncStorage.setItem("@isLoggedIn", "true");
+
+        // Redirecionamento
         if (user.isSubscribed) {
           navigation.replace("Home");
         } else {
           navigation.replace("Subscription", { userId: user.id });
         }
       } else {
-        // Caso o backend não retorne usuário válido, redireciona ao fluxo de planos
         navigation.replace("ChoosePlan");
       }
     } catch (err: any) {
@@ -144,7 +145,6 @@ export default function LoginScreen() {
   return (
     <AppLayout>
       <SafeAreaView style={styles.container}>
-        {/* Título */}
         <View style={styles.titleContainer}>
           <Text style={styles.mainTitle}>
             <Text style={{ color: "#EC4899" }}>M</Text>ilky{" "}
@@ -153,7 +153,6 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>Login</Text>
         </View>
 
-        {/* Formulário */}
         {/* Email */}
         <Controller
           control={control}
@@ -208,7 +207,6 @@ export default function LoginScreen() {
           <Text style={styles.errorText}>{errors.password.message}</Text>
         )}
 
-        {/* Botão Login */}
         <TouchableOpacity
           style={styles.loginButton}
           onPress={handleSubmit(onSubmit)}
@@ -216,15 +214,12 @@ export default function LoginScreen() {
           <Text style={styles.loginButtonText}>Entrar</Text>
         </TouchableOpacity>
 
-        {/* Link para cadastro (volta para tela de planos) */}
         <TouchableOpacity onPress={() => navigation.replace("ChoosePlan")}>
           <Text style={styles.registerText}>
-            Não tem conta?{" "}
-            <Text style={styles.registerLink}>Cadastre-se</Text>
+            Não tem conta? <Text style={styles.registerLink}>Cadastre-se</Text>
           </Text>
         </TouchableOpacity>
 
-        {/* Cancelar */}
         <TouchableOpacity
           onPress={() => navigation.replace("Splash")}
           style={styles.cancelButton}

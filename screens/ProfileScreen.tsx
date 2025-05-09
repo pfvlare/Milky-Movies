@@ -118,52 +118,61 @@ const styles = StyleSheet.create({
 export default function ProfileScreen() {
   const navigation = useNavigation<NavProp>();
   const user = useUserStore((state) => state.user);
+  const setUser = useUserStore((state) => state.setUser);
   const clearUser = useUserStore((state) => state.clearUser);
   const setSubscription = useUserStore((state) => state.setSubscription);
 
   useEffect(() => {
     const fetchInfo = async () => {
       try {
-        if (!user?.id) return;
+        const storedUser = await AsyncStorage.getItem("@user");
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser?.id) {
+            setUser(parsedUser);
 
-        const card = await getCardByUserId(user.id);
+            const card = await getCardByUserId(parsedUser.id);
 
-        setSubscription({
-          cardNumber: card.cardNumber,
-          expiry: formatExpiresCard(card),
-          planName: card.planName || "Padrão",
-          planPrice: card.planPrice || "R$ --",
-          isActive: card.isActive ?? true,
-        });
+            setSubscription({
+              cardNumber: card.cardNumber,
+              expiry: formatExpiresCard(card),
+              planName: card.planName || "Padrão",
+              planPrice: card.planPrice || "R$ --",
+              isActive: card.isActive ?? true,
+            });
 
-        const pending = await AsyncStorage.getItem("@pendingChange");
+            const pending = await AsyncStorage.getItem("@pendingChange");
 
-        if (pending) {
-          const parsed = JSON.parse(pending);
+            if (pending) {
+              const parsed = JSON.parse(pending);
 
-          if (parsed?.userId === user.id && parsed?.newPlan) {
-            setSubscription((prev) => ({
-              ...prev,
-              planName: parsed.newPlan.name,
-              planPrice: parsed.newPlan.price,
-            }));
+              if (parsed?.userId === parsedUser.id && parsed?.newPlan) {
+                setSubscription((prev) => ({
+                  ...prev,
+                  planName: parsed.newPlan.name,
+                  planPrice: parsed.newPlan.price,
+                }));
 
-            await AsyncStorage.removeItem("@pendingChange");
+                await AsyncStorage.removeItem("@pendingChange");
 
-            Alert.alert("Plano Atualizado", `Você agora está no plano ${parsed.newPlan.name}`);
+                Alert.alert("Plano Atualizado", `Você agora está no plano ${parsed.newPlan.name}`);
+              }
+            }
           }
         }
       } catch (error) {
-        console.error("Erro ao buscar dados:", error);
+        console.error("Erro ao buscar dados do perfil:", error);
       }
     };
 
     fetchInfo();
-  }, [user?.id]);
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem("@user");
+    await AsyncStorage.removeItem("@isLoggedIn");
     clearUser();
-    navigation.reset({ index: 0, routes: [{ name: "ChoosePlan" }] });
+    navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
   };
 
   const handleCancelSubscription = () => {
@@ -295,11 +304,7 @@ export default function ProfileScreen() {
               <Text style={styles.loadingText}>Nenhum usuário logado.</Text>
               <TouchableOpacity
                 style={[styles.button, { marginTop: 20 }]}
-                onPress={async () => {
-                  await AsyncStorage.removeItem("@user");
-                  await AsyncStorage.removeItem("@isLoggedIn");
-                  navigation.reset({ index: 0, routes: [{ name: "ChoosePlan" }] });
-                }}
+                onPress={handleLogout}
               >
                 <Text style={styles.buttonText}>Voltar ao início</Text>
               </TouchableOpacity>

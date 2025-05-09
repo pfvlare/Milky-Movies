@@ -10,6 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/Navigation";
+import { useUserStore } from "../store/userStore"; // ⬅️ Import da store
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Splash">;
 
@@ -39,6 +40,7 @@ const styles = StyleSheet.create({
 
 export default function SplashScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const setUser = useUserStore((state) => state.setUser); // ⬅️ Hook da store
 
   useEffect(() => {
     const waitAndCheckAuth = async () => {
@@ -49,7 +51,7 @@ export default function SplashScreen() {
         const isLoggedIn = await AsyncStorage.getItem("@isLoggedIn");
 
         if (!storedUser || isLoggedIn !== "true") {
-          return navigation.replace("Welcome"); // 👈 redireciona para a tela inicial
+          return navigation.replace("Welcome");
         }
 
         const user = JSON.parse(storedUser);
@@ -65,6 +67,9 @@ export default function SplashScreen() {
           await AsyncStorage.removeItem("@isLoggedIn");
           return navigation.replace("Welcome");
         }
+
+        // ⬅️ Salva o usuário na store global Zustand
+        setUser(user);
 
         if (user.isSubscribed) {
           return navigation.replace("Home");

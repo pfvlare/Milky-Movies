@@ -23,6 +23,7 @@ import { registerUser } from "../api/services/user/register";
 import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/Navigation";
+import { useUserStore } from "../store/userStore";
 
 const theme = themeConfig.theme;
 
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 18
+    marginHorizontal: 18,
   },
   input: {
     color: "white",
@@ -69,6 +70,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#F44336",
     marginBottom: 8,
+    marginHorizontal: 18,
   },
   registerButton: {
     backgroundColor: theme.text,
@@ -76,7 +78,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     marginBottom: 16,
-    marginHorizontal: 18
+    marginHorizontal: 18,
   },
   registerButtonText: {
     color: "white",
@@ -97,6 +99,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 20,
+    marginHorizontal: 18,
   },
   planLabel: {
     color: "#9CA3AF",
@@ -121,6 +124,7 @@ export default function RegisterScreen() {
     formState: { errors },
   } = useForm<RegisterType>({ resolver: zodResolver(RegisterSchema) });
 
+  const setUser = useUserStore((state) => state.setUser);
   const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async (data: RegisterType) => {
@@ -129,15 +133,25 @@ export default function RegisterScreen() {
 
       if (!result?.id) throw new Error("ID do usuário não retornado.");
 
-      await AsyncStorage.setItem(
-        "@user",
-        JSON.stringify({
-          id: result.id,
-          name: `${data.firstname} ${data.lastname}`,
-          email: data.email,
-          isSubscribed: false,
-        })
-      );
+      // Criação do objeto completo com dados de cadastro
+      const user = {
+        id: result.id,
+        firstname: data.firstname,
+        lastname: data.lastname,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        isSubscribed: false,
+        subscription: {
+          planName: selectedPlan.name,
+          planPrice: selectedPlan.price,
+        },
+      };
+
+      // Atualiza Zustand e AsyncStorage
+      setUser(user);
+      await AsyncStorage.setItem("@user", JSON.stringify(user));
+      await AsyncStorage.setItem("@isLoggedIn", "true");
 
       Toast.show({
         type: "success",
@@ -169,16 +183,10 @@ export default function RegisterScreen() {
       { name: "firstname", placeholder: "Nome" },
       { name: "lastname", placeholder: "Sobrenome" },
       { name: "email", placeholder: "Email", keyboardType: "email-address" },
-      {
-        name: "phone",
-        placeholder: "Telefone",
-        keyboardType: "numeric",
-        maxLength: 11,
-      },
+      { name: "phone", placeholder: "Telefone", keyboardType: "numeric", maxLength: 11 },
       { name: "address", placeholder: "Endereço" },
     ];
 
-  // Fallback visual se não houver plano
   if (!selectedPlan) {
     return (
       <SafeAreaView style={styles.container}>
@@ -208,123 +216,95 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.mainTitle}>
-          <Text style={{ color: theme.text }}>M</Text>ilky{" "}
-          <Text style={{ color: theme.text }}>M</Text>ovies
-        </Text>
-        <Text style={styles.subtitle}>Cadastro</Text>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.mainTitle}>
+            <Text style={{ color: theme.text }}>M</Text>ilky{" "}
+            <Text style={{ color: theme.text }}>M</Text>ovies
+          </Text>
+          <Text style={styles.subtitle}>Cadastro</Text>
+        </View>
 
-      <View style={styles.selectedPlanBox}>
-        <Text style={styles.planLabel}>Plano Selecionado</Text>
-        <Text style={styles.planName}>
-          {selectedPlan.name} - {selectedPlan.price}
-        </Text>
-      </View>
+        <View style={styles.selectedPlanBox}>
+          <Text style={styles.planLabel}>Plano Selecionado</Text>
+          <Text style={styles.planName}>
+            {selectedPlan.name} - {selectedPlan.price}
+          </Text>
+        </View>
 
-      {fields.map((field) => (
-        <View key={field.name}>
+        {fields.map((field) => (
+          <View key={field.name}>
+            <Controller
+              control={control}
+              name={field.name}
+              render={({ field: { onChange, value } }) => (
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    placeholder={field.placeholder}
+                    placeholderTextColor="#6B7280"
+                    style={styles.input}
+                    keyboardType={field.keyboardType}
+                    maxLength={field.maxLength}
+                    onChangeText={onChange}
+                    value={value}
+                  />
+                </View>
+              )}
+            />
+            {errors[field.name] && (
+              <Text style={styles.errorText}>
+                {errors[field.name]?.message}
+              </Text>
+            )}
+          </View>
+        ))}
+
+        <View>
           <Controller
             control={control}
-            name={field.name}
+            name="password"
             render={({ field: { onChange, value } }) => (
               <View style={styles.inputContainer}>
                 <TextInput
-                  placeholder={field.placeholder}
+                  placeholder="Senha (6 dígitos)"
                   placeholderTextColor="#6B7280"
+                  secureTextEntry={!showPassword}
                   style={styles.input}
-                  keyboardType={field.keyboardType}
-                  maxLength={field.maxLength}
+                  keyboardType="numeric"
+                  maxLength={6}
                   onChangeText={onChange}
                   value={value}
                 />
+                <TouchableOpacity
+                  onPress={() => setShowPassword((prev) => !prev)}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={22}
+                    color="#9CA3AF"
+                  />
+                </TouchableOpacity>
               </View>
             )}
           />
-          {errors[field.name] && (
-            <Text style={styles.errorText}>
-              {errors[field.name]?.message}
-            </Text>
+          {errors.password && (
+            <Text style={styles.errorText}>{errors.password.message}</Text>
           )}
         </View>
-      ))}
 
-      <View>
-        <Controller
-          control={control}
-          name={field.name}
-          render={({ field: { onChange, value } }) => (
-            <View style={styles.inputContainer}>
-              <TextInput
-                placeholder={field.placeholder}
-                placeholderTextColor="#6B7280"
-                style={styles.input}
-                keyboardType={field.keyboardType}
-                maxLength={field.maxLength}
-                onChangeText={onChange}
-                value={value}
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword((prev) => !prev)}
-              >
-                <Ionicons
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={22}
-                  color="#9CA3AF"
-                />
-              </TouchableOpacity>
-            </View>
-          )}
-        />
-        {errors[field.name] && (
-          <Text style={styles.errorText}>{errors[field.name]?.message}</Text>
-        )}
-      </View>
+        <TouchableOpacity
+          style={styles.registerButton}
+          onPress={handleSubmit(onSubmit)}
+        >
+          <Text style={styles.registerButtonText}>Continuar</Text>
+        </TouchableOpacity>
 
-      <View>
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, value } }) => (
-            <View style={styles.inputContainer}>
-              <TextInput
-                placeholder="Senha (6 dígitos)"
-                placeholderTextColor="#6B7280"
-                secureTextEntry={!showPassword}
-                style={styles.input}
-                keyboardType="numeric"
-                maxLength={6}
-                onChangeText={onChange}
-                value={value}
-              />
-              <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
-                <Ionicons
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={22}
-                  color="#9CA3AF"
-                />
-              </TouchableOpacity>
-            </View>
-          )}
-        />
-        {errors.password && (
-          <Text style={styles.errorText}>{errors.password.message}</Text>
-        )}
-      </View>
-
-      <TouchableOpacity
-        style={styles.registerButton}
-        onPress={handleSubmit(onSubmit)}
-      >
-        <Text style={styles.registerButtonText}>Continuar</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-        <Text style={styles.loginText}>
-          Já tem conta? <Text style={styles.loginLink}>Login</Text>
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+          <Text style={styles.loginText}>
+            Já tem conta? <Text style={styles.loginLink}>Login</Text>
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }

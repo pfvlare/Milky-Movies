@@ -2,20 +2,18 @@ import React from "react";
 import {
     View,
     Text,
-    TouchableOpacity,
-    SafeAreaView,
-    Image,
     StyleSheet,
+    TouchableOpacity,
+    Image,
+    SafeAreaView,
     Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/native-stack";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/Navigation";
-import * as themeConfig from "../theme";
+import { theme } from "../theme";
 
-const theme = themeConfig.theme;
-
-type NavigationProp = StackNavigationProp<RootStackParamList, "Welcome">;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Welcome">;
 
 export default function WelcomeScreen() {
     const navigation = useNavigation<NavigationProp>();
@@ -29,26 +27,29 @@ export default function WelcomeScreen() {
                 />
 
                 <Text style={styles.title}>
-                    <Text style={styles.pink}>M</Text>ilky{" "}
-                    <Text style={styles.pink}>M</Text>ovies
+                    Bem-vindo ao{" "}
+                    <Text style={styles.highlight}>Milky Movies</Text>
                 </Text>
 
                 <Text style={styles.subtitle}>
-                    Filmes, séries e muito mais. Sem limites.
+                    Descubra os melhores filmes e séries, sem anúncios e com acesso em
+                    múltiplos dispositivos.
                 </Text>
 
                 <TouchableOpacity
-                    style={styles.primaryButton}
+                    style={styles.buttonPrimary}
                     onPress={() => navigation.navigate("ChoosePlan")}
                 >
-                    <Text style={styles.buttonText}>Criar Conta</Text>
+                    <Text style={styles.buttonText}>Quero me cadastrar</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={styles.secondaryButton}
+                    style={styles.buttonSecondary}
                     onPress={() => navigation.navigate("Login")}
                 >
-                    <Text style={styles.secondaryButtonText}>Já tenho uma conta</Text>
+                    <Text style={styles.secondaryText}>
+                        Já tem conta? <Text style={styles.link}>Entrar</Text>
+                    </Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -58,53 +59,58 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#111827",
+        backgroundColor: theme.background,
         paddingTop: Platform.OS === "ios" ? 50 : 30,
+        paddingHorizontal: 24,
     },
     content: {
         flex: 1,
-        alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: 32,
+        alignItems: "center",
     },
     logo: {
         width: 140,
         height: 140,
-        resizeMode: "contain",
-        marginBottom: 24,
+        marginBottom: 20,
     },
     title: {
-        fontSize: 32,
-        fontWeight: "bold",
         color: "white",
-        marginBottom: 8,
+        fontSize: 28,
+        fontWeight: "bold",
+        textAlign: "center",
+        marginBottom: 12,
     },
-    pink: {
+    highlight: {
         color: theme.text,
     },
     subtitle: {
-        fontSize: 16,
         color: "#9CA3AF",
+        fontSize: 16,
         textAlign: "center",
-        marginBottom: 32,
+        marginBottom: 24,
+        paddingHorizontal: 10,
     },
-    primaryButton: {
+    buttonPrimary: {
         backgroundColor: theme.text,
         paddingVertical: 14,
-        paddingHorizontal: 40,
-        borderRadius: 12,
+        borderRadius: 10,
+        paddingHorizontal: 32,
         marginBottom: 16,
-    },
-    secondaryButton: {
-        paddingVertical: 14,
     },
     buttonText: {
         color: "white",
-        fontWeight: "bold",
         fontSize: 16,
+        fontWeight: "bold",
     },
-    secondaryButtonText: {
+    buttonSecondary: {
+        marginTop: 10,
+    },
+    secondaryText: {
         color: "#9CA3AF",
         fontSize: 16,
+    },
+    link: {
+        color: theme.text,
+        fontWeight: "bold",
     },
 });
