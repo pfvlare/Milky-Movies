@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Subscription {
@@ -53,18 +53,7 @@ export const useUserStore = create<UserStore>()(
         }),
         {
             name: "milky-user-store",
-            storage: {
-                getItem: async (key) => {
-                    const value = await AsyncStorage.getItem(key);
-                    return value ?? null;
-                },
-                setItem: async (key, value) => {
-                    await AsyncStorage.setItem(key, value); // value já será uma string
-                },
-                removeItem: async (key) => {
-                    await AsyncStorage.removeItem(key);
-                },
-            },
+            storage: createJSONStorage(() => AsyncStorage),
         }
     )
 );

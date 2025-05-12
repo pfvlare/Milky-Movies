@@ -6,11 +6,9 @@ import {
   StyleSheet,
   Image,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/Navigation";
-import { useUserStore } from "../store/userStore"; // ⬅️ Import da store
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Splash">;
 
@@ -40,49 +38,14 @@ const styles = StyleSheet.create({
 
 export default function SplashScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const setUser = useUserStore((state) => state.setUser); // ⬅️ Hook da store
 
   useEffect(() => {
-    const waitAndCheckAuth = async () => {
-      await new Promise((res) => setTimeout(res, 2500));
-
-      try {
-        const storedUser = await AsyncStorage.getItem("@user");
-        const isLoggedIn = await AsyncStorage.getItem("@isLoggedIn");
-
-        if (!storedUser || isLoggedIn !== "true") {
-          return navigation.replace("Welcome");
-        }
-
-        const user = JSON.parse(storedUser);
-
-        if (
-          !user ||
-          typeof user !== "object" ||
-          !user.id ||
-          typeof user.id !== "string" ||
-          !user.email
-        ) {
-          await AsyncStorage.removeItem("@user");
-          await AsyncStorage.removeItem("@isLoggedIn");
-          return navigation.replace("Welcome");
-        }
-
-        // ⬅️ Salva o usuário na store global Zustand
-        setUser(user);
-
-        if (user.isSubscribed) {
-          return navigation.replace("Home");
-        } else {
-          return navigation.replace("Subscription", { userId: user.id });
-        }
-      } catch (err) {
-        console.error("Erro ao verificar login:", err);
-        navigation.replace("Welcome");
-      }
+    const start = async () => {
+      await new Promise((res) => setTimeout(res, 1500)); // Simula carregamento
+      navigation.replace("Welcome"); // Sempre envia para a tela Welcome
     };
 
-    waitAndCheckAuth();
+    start();
   }, [navigation]);
 
   return (

@@ -10,18 +10,19 @@ import { ActivityIndicator, View } from "react-native";
 const queryClient = new QueryClient();
 
 export default function App() {
-  const [initialScreen, setInitialScreen] = useState<"Home" | "Login" | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const user = await AsyncStorage.getItem("@user");
-      setInitialScreen(user ? "Login" : "Login");
+    const init = async () => {
+      // Você pode deixar aqui uma leitura futura, se quiser validar algo
+      await AsyncStorage.getItem("@user");
+      setReady(true);
     };
 
-    checkUser();
+    init();
   }, []);
 
-  if (!initialScreen) {
+  if (!ready) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#EC4899" />
@@ -29,11 +30,10 @@ export default function App() {
     );
   }
 
-  // Se carregou corretamente
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
-        <Navigation initialRoute={initialScreen} />
+        <Navigation initialRoute="Welcome" />
         <Toast />
       </SafeAreaProvider>
     </QueryClientProvider>

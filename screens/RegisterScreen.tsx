@@ -131,7 +131,7 @@ export default function RegisterScreen() {
     try {
       const result = await registerUser({
         ...data,
-        Subscription: {
+        subscription: {
           plan: selectedPlan.name,
           value: Number(selectedPlan.price)
         }
