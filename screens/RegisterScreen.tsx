@@ -129,7 +129,13 @@ export default function RegisterScreen() {
 
   const onSubmit = async (data: RegisterType) => {
     try {
-      const result = await registerUser(data);
+      const result = await registerUser({
+        ...data,
+        Subscription: {
+          plan: selectedPlan.name,
+          value: Number(selectedPlan.price)
+        }
+      });
 
       if (!result?.id) throw new Error("ID do usuário não retornado.");
 
@@ -244,7 +250,7 @@ export default function RegisterScreen() {
                     keyboardType={field.keyboardType}
                     maxLength={field.maxLength}
                     onChangeText={onChange}
-                    value={value}
+                    value={value.toString()}
                   />
                 </View>
               )}
