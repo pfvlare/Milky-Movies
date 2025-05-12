@@ -97,7 +97,7 @@ export default function ChangePlanScreen() {
         if (!selectedPlan) return;
 
         await AsyncStorage.setItem("@newPlan", JSON.stringify(selectedPlan));
-        navigation.navigate("ConfirmCard"); // redireciona para etapa do cartão
+        navigation.navigate("ConfirmCard");
     };
 
     return (

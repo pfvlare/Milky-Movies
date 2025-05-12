@@ -133,7 +133,6 @@ export default function RegisterScreen() {
 
       if (!result?.id) throw new Error("ID do usuário não retornado.");
 
-      // Criação do objeto completo com dados de cadastro
       const user = {
         id: result.id,
         firstname: data.firstname,
@@ -148,7 +147,6 @@ export default function RegisterScreen() {
         },
       };
 
-      // Atualiza Zustand e AsyncStorage
       setUser(user);
       await AsyncStorage.setItem("@user", JSON.stringify(user));
       await AsyncStorage.setItem("@isLoggedIn", "true");
@@ -228,7 +226,7 @@ export default function RegisterScreen() {
         <View style={styles.selectedPlanBox}>
           <Text style={styles.planLabel}>Plano Selecionado</Text>
           <Text style={styles.planName}>
-            {selectedPlan.name} - {selectedPlan.price}
+            {selectedPlan.name} - {`R$ ${selectedPlan.price}/mês`}
           </Text>
         </View>
 

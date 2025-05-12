@@ -22,7 +22,7 @@ const plans: (Plan & { details: string[] })[] = [
     {
         id: "basic",
         name: "Plano Básico",
-        price: "R$ 18,90/mês",
+        price: "18,90",
         details: [
             "1 dispositivo por vez",
             "Qualidade SD (480p)",
@@ -32,7 +32,7 @@ const plans: (Plan & { details: string[] })[] = [
     {
         id: "standard",
         name: "Plano Padrão",
-        price: "R$ 39,90/mês",
+        price: "39,90",
         details: [
             "2 dispositivos ao mesmo tempo",
             "Qualidade HD (720p)",
@@ -42,7 +42,7 @@ const plans: (Plan & { details: string[] })[] = [
     {
         id: "premium",
         name: "Plano Premium",
-        price: "R$ 55,90/mês",
+        price: "55,90",
         details: [
             "4 dispositivos ao mesmo tempo",
             "Qualidade Ultra HD (4K)",
@@ -172,7 +172,7 @@ export default function ChoosePlanScreen() {
                             onPress={() => setSelectedPlan(plan)}
                         >
                             <Text style={styles.planName}>{plan.name}</Text>
-                            <Text style={styles.planPrice}>{plan.price}</Text>
+                            <Text style={styles.planPrice}>{`R$ ${plan.price}/mês`}</Text>
                             {plan.details.map((detail, idx) => (
                                 <Text key={idx} style={styles.detailItem}>
                                     • {detail}
