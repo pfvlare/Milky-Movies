@@ -2,8 +2,7 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-// Telas
-import WelcomeScreen from "../screens/WelcomeScreen"; // nova
+import WelcomeScreen from "../screens/WelcomeScreen";
 import SplashScreen from "../screens/SplashScreen";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
@@ -18,30 +17,7 @@ import ChoosePlanScreen from "../screens/ChoosePlanScreen";
 import ChangePlanScreen from "../screens/ChangePlanScreen";
 import ConfirmCardScreen from "../screens/ConfirmCardScreen";
 
-// Tipo de plano
-export type Plan = {
-  id: string;
-  name: string;
-  price: string;
-};
-
-// Navegação com rotas tipadas
-export type RootStackParamList = {
-  Welcome: undefined; // nova
-  Splash: undefined;
-  Login: undefined;
-  Register: { selectedPlan: Plan };
-  Subscription: { userId: string };
-  Home: undefined;
-  Movie: { id: string };
-  Person: { id: string };
-  Search: undefined;
-  Favorites: undefined;
-  Profile: undefined;
-  ChoosePlan: undefined;
-  ChangePlan: undefined;
-  ConfirmCard: undefined;
-};
+import { RootStackParamList } from "./NavigationTypes"; // ✅ TIPOS vindos do arquivo separado
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

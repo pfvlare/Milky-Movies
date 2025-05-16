@@ -8,10 +8,13 @@ import {
   Alert,
   StyleSheet,
   Platform,
+  LayoutAnimation,
+  UIManager,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 
 import * as themeConfig from "../theme";
 import { useUserStore } from "../store/userStore";
@@ -27,7 +30,7 @@ type NavProp = NativeStackNavigationProp<RootStackParamList, "Profile">;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.background,
+    backgroundColor: "#111827",
     paddingTop: Platform.OS === "ios" ? 50 : 30,
   },
   innerWrapper: {
@@ -44,72 +47,93 @@ const styles = StyleSheet.create({
     marginTop: 40,
     marginBottom: 24,
   },
-  mainTitle: {
-    color: "white",
+  avatar: {
+    backgroundColor: "#EC4899",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  avatarText: {
+    color: "#fff",
     fontSize: 32,
     fontWeight: "bold",
-    marginBottom: 4,
+  },
+  mainTitle: {
+    color: "#fff",
+    fontSize: 30,
+    fontWeight: "bold",
+    letterSpacing: 1,
   },
   subtitle: {
-    color: "#6B7280",
+    color: "#EC4899",
     fontSize: 18,
+    marginTop: 4,
+  },
+  section: {
+    backgroundColor: "#1f2937",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "600",
   },
   infoItem: {
     marginBottom: 12,
   },
   infoLabel: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: "#9CA3AF",
+    fontSize: 14,
+    marginBottom: 2,
   },
   infoText: {
-    color: "#D1D5DB",
+    color: "#F9FAFB",
     fontSize: 16,
+    fontWeight: "500",
   },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  statusActive: {
-    color: "#10B981",
-    fontWeight: "bold",
-  },
-  statusInactive: {
-    color: "#EF4444",
-    fontWeight: "bold",
-  },
-  button: {
-    backgroundColor: theme.text,
+  gradientButton: {
+    borderRadius: 10,
     paddingVertical: 14,
-    borderRadius: 12,
     alignItems: "center",
-    marginBottom: 16,
+    marginTop: 16,
   },
   cancelButton: {
-    backgroundColor: "#EF4444",
+    backgroundColor: "#B91C1C",
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: "center",
-    marginBottom: 16,
+    marginTop: 16,
   },
   logoutButton: {
-    backgroundColor: "#4B5563",
+    backgroundColor: "#374151",
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: "center",
+    marginTop: 24,
   },
   buttonText: {
-    color: "white",
+    color: "#fff",
     fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 16,
   },
   loadingText: {
-    color: "white",
+    color: "#F3F4F6",
     textAlign: "center",
     fontSize: 16,
   },
@@ -123,6 +147,10 @@ export default function ProfileScreen() {
   const setSubscription = useUserStore((state) => state.setSubscription);
 
   useEffect(() => {
+    if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+
     const fetchInfo = async () => {
       try {
         const storedUser = await AsyncStorage.getItem("@user");
@@ -130,7 +158,6 @@ export default function ProfileScreen() {
           const parsedUser = JSON.parse(storedUser);
           if (parsedUser?.id) {
             setUser(parsedUser);
-
             const card = await getCardByUserId(parsedUser.id);
 
             setSubscription({
@@ -142,19 +169,15 @@ export default function ProfileScreen() {
             });
 
             const pending = await AsyncStorage.getItem("@pendingChange");
-
             if (pending) {
               const parsed = JSON.parse(pending);
-
               if (parsed?.userId === parsedUser.id && parsed?.newPlan) {
                 setSubscription((prev) => ({
                   ...prev,
                   planName: parsed.newPlan.name,
                   planPrice: parsed.newPlan.price,
                 }));
-
                 await AsyncStorage.removeItem("@pendingChange");
-
                 Alert.alert("Plano Atualizado", `Você agora está no plano ${parsed.newPlan.name}`);
               }
             }
@@ -176,13 +199,23 @@ export default function ProfileScreen() {
   };
 
   const handleCancelSubscription = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     Alert.alert("Assinatura", "Assinatura cancelada com sucesso (modo demonstração).");
   };
 
   const handleUpdateCard = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (user?.id) {
       navigation.navigate("Subscription", { userId: user.id });
     }
+  };
+
+  const getInitials = () => {
+    if (!user?.firstname) return "U";
+    return (
+      user.firstname.charAt(0).toUpperCase() +
+      (user.lastname ? user.lastname.charAt(0).toUpperCase() : "")
+    );
   };
 
   const maskCard = (number?: string) =>
@@ -204,6 +237,9 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.innerWrapper}>
           <View style={styles.header}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{getInitials()}</Text>
+            </View>
             <Text style={styles.mainTitle}>
               <Text style={{ color: theme.text }}>M</Text>ilky{" "}
               <Text style={{ color: theme.text }}>M</Text>ovies
@@ -214,83 +250,118 @@ export default function ProfileScreen() {
           {user?.id ? (
             <>
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Dados Pessoais</Text>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionTitle}>Dados Pessoais</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                      navigation.navigate("Register", { userToEdit: user });
+                    }}
+                  >
+                    <Ionicons name="create-outline" size={20} color="#EC4899" />
+                  </TouchableOpacity>
+                </View>
+
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Nome:</Text>
+                  <Text style={styles.infoLabel}>Nome</Text>
                   <Text style={styles.infoText}>
                     {user.firstname || "Não informado"} {user.lastname || ""}
                   </Text>
                 </View>
+
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Email:</Text>
+                  <Text style={styles.infoLabel}>Email</Text>
                   <Text style={styles.infoText}>{user.email || "Não informado"}</Text>
                 </View>
+
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Endereço:</Text>
+                  <Text style={styles.infoLabel}>Endereço</Text>
                   <Text style={styles.infoText}>{user.address || "Não informado"}</Text>
                 </View>
+
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Telefone:</Text>
+                  <Text style={styles.infoLabel}>Telefone</Text>
                   <Text style={styles.infoText}>{user.phone || "Não informado"}</Text>
                 </View>
               </View>
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Cartão de Pagamento</Text>
+
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Número:</Text>
+                  <Text style={styles.infoLabel}>Número</Text>
                   <Text style={styles.infoText}>
                     {maskCard(user.subscription?.cardNumber)}
                   </Text>
                 </View>
+
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Validade:</Text>
+                  <Text style={styles.infoLabel}>Validade</Text>
                   <Text style={styles.infoText}>
                     {user.subscription?.expiry || "Não informado"}
                   </Text>
                 </View>
-                <TouchableOpacity style={styles.button} onPress={handleUpdateCard}>
-                  <Text style={styles.buttonText}>Alterar forma de pagamento</Text>
+
+                <TouchableOpacity onPress={handleUpdateCard}>
+                  <LinearGradient
+                    colors={["#EC4899", "#D946EF"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.gradientButton}
+                  >
+                    <Text style={styles.buttonText}>Alterar forma de pagamento</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Assinatura</Text>
+
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Plano:</Text>
+                  <Text style={styles.infoLabel}>Plano</Text>
                   <Text style={styles.infoText}>
                     {user.subscription?.planName || "Não informado"} -{" "}
                     {user.subscription?.planPrice || "R$ --"}
                   </Text>
                 </View>
+
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Status:</Text>
+                  <Text style={styles.infoLabel}>Status</Text>
                   <Text
-                    style={
-                      user.subscription?.isActive
-                        ? styles.statusActive
-                        : styles.statusInactive
-                    }
+                    style={{
+                      color: user.subscription?.isActive ? "#10B981" : "#EF4444",
+                      fontWeight: "bold",
+                    }}
                   >
                     {user.subscription?.isActive ? "Ativa" : "Inativa"}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => navigation.navigate("ChangePlan")}
-                >
-                  <Text style={styles.buttonText}>Trocar Plano de Assinatura</Text>
-                </TouchableOpacity>
-                {user.subscription?.isActive ? (
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={handleCancelSubscription}
+
+                <TouchableOpacity onPress={() => navigation.navigate("ChangePlan")}>
+                  <LinearGradient
+                    colors={["#EC4899", "#D946EF"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.gradientButton}
                   >
+                    <Text style={styles.buttonText}>Trocar Plano de Assinatura</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                {user.subscription?.isActive ? (
+                  <TouchableOpacity style={styles.cancelButton} onPress={handleCancelSubscription}>
                     <Text style={styles.buttonText}>Cancelar Assinatura</Text>
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity style={styles.button} onPress={handleUpdateCard}>
-                    <Text style={styles.buttonText}>Renovar Plano</Text>
+                  <TouchableOpacity onPress={handleUpdateCard}>
+                    <LinearGradient
+                      colors={["#EC4899", "#D946EF"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.gradientButton}
+                    >
+                      <Text style={styles.buttonText}>Renovar Plano</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
                 )}
               </View>
@@ -303,7 +374,7 @@ export default function ProfileScreen() {
             <View style={{ padding: 24 }}>
               <Text style={styles.loadingText}>Nenhum usuário logado.</Text>
               <TouchableOpacity
-                style={[styles.button, { marginTop: 20 }]}
+                style={[styles.gradientButton, { marginTop: 20 }]}
                 onPress={handleLogout}
               >
                 <Text style={styles.buttonText}>Voltar ao início</Text>

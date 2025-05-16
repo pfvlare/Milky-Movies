@@ -10,15 +10,9 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 
 import TrendingMovies from "../components/trendingMovies";
-import MovieList from "../components/movieList";
+import MovieList from "../components/movieList.tsx";
 import Loading from "../components/loading";
 import * as themeConfig from "../theme";
-import {
-  useNavigation,
-  useRoute,
-  NavigationProp,
-  RouteProp,
-} from "@react-navigation/native";
 import AppLayout from "../components/AppLayout";
 import MenuModal from "../components/MenuModal";
 import {
@@ -27,6 +21,10 @@ import {
   useUpcomingMovies,
 } from "../hooks/useMovies";
 import Toast from "react-native-toast-message";
+import {
+  NativeStackScreenProps,
+} from "@react-navigation/native-stack";
+import { RootStackParamList } from "../Navigation/Navigation";
 
 const theme = themeConfig.theme;
 
@@ -69,13 +67,9 @@ const styles = StyleSheet.create({
   },
 });
 
-type RootStackParamList = {
-  Search: undefined;
-};
+type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
-export default function HomeScreen() {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<Record<string, object | undefined>, string>>();
+export default function HomeScreen({ navigation, route }: Props) {
   const [showMenu, setShowMenu] = useState(false);
 
   const shouldShowMenu = !hiddenMenuRoutes.includes(route.name);
@@ -127,7 +121,7 @@ export default function HomeScreen() {
         <StatusBar style="light" />
 
         {showMenu && shouldShowMenu && (
-          <MenuModal visible={showMenu} trigger={handleMenu} onClose={undefined} />
+          <MenuModal visible={showMenu} trigger={handleMenu} onClose={undefined} navigation={navigation} />
         )}
 
         {isLoading ? (
@@ -138,13 +132,14 @@ export default function HomeScreen() {
             contentContainerStyle={styles.scrollContainer}
           >
             {trendingMovies?.results?.length > 0 && (
-              <TrendingMovies data={trendingMovies.results} />
+              <TrendingMovies data={trendingMovies.results} navigation={navigation} />
             )}
             {upcomingMovies?.results?.length > 0 && (
               <MovieList
                 title="Lançamentos"
                 data={upcomingMovies.results}
                 hiddenSeeAll={false}
+                navigation={navigation}
               />
             )}
             {topRatedMovies?.results?.length > 0 && (
@@ -152,6 +147,7 @@ export default function HomeScreen() {
                 title="Mais Assistidos"
                 data={topRatedMovies.results}
                 hiddenSeeAll={false}
+                navigation={navigation}
               />
             )}
           </ScrollView>

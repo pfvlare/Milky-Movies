@@ -12,17 +12,26 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import * as themeConfig from "../theme";
-import { Plan, RootStackParamList } from "../Navigation/Navigation";
+import { RootStackParamList } from "../Navigation/Navigation";
+
+// ✅ Tipo do plano atualizado
+export type Plan = {
+    id: string;
+    name: string;
+    price: string;
+    code: "BASIC" | "STANDARD" | "PREMIUM"; // <- Esse código é o que o backend espera
+};
 
 const theme = themeConfig.theme;
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "ChoosePlan">;
 
-const plans: (Plan & { details: string[] })[] = [
+const plans = [
     {
         id: "basic",
-        name: "Plano Básico",
-        price: "18,90",
+        name: "Plano Básico",        // ← exibido para o usuário
+        price: "18.90",
+        code: "basic",               // ← enviado para o backend
         details: [
             "1 dispositivo por vez",
             "Qualidade SD (480p)",
@@ -30,9 +39,10 @@ const plans: (Plan & { details: string[] })[] = [
         ],
     },
     {
-        id: "standard",
-        name: "Plano Padrão",
-        price: "39,90",
+        id: "intermediary",
+        name: "Plano Padrão",        // ← nome amigável
+        price: "39.90",
+        code: "intermediary",        // ← valor real aceito pelo enum do Prisma
         details: [
             "2 dispositivos ao mesmo tempo",
             "Qualidade HD (720p)",
@@ -40,9 +50,10 @@ const plans: (Plan & { details: string[] })[] = [
         ],
     },
     {
-        id: "premium",
+        id: "complete",
         name: "Plano Premium",
-        price: "55,90",
+        price: "55.90",
+        code: "complete",
         details: [
             "4 dispositivos ao mesmo tempo",
             "Qualidade Ultra HD (4K)",
@@ -50,6 +61,7 @@ const plans: (Plan & { details: string[] })[] = [
         ],
     },
 ];
+
 
 const styles = StyleSheet.create({
     container: {
@@ -134,6 +146,8 @@ export default function ChoosePlanScreen() {
 
     const handleContinue = () => {
         if (!selectedPlan) return;
+
+        // ✅ Agora enviando o `code`, que será usado no RegisterScreen
         navigation.navigate("Register", { selectedPlan });
     };
 
@@ -167,12 +181,16 @@ export default function ChoosePlanScreen() {
                             key={plan.id}
                             style={[
                                 styles.planCard,
-                                selectedPlan?.id === plan.id ? styles.selected : styles.unselected,
+                                selectedPlan?.id === plan.id
+                                    ? styles.selected
+                                    : styles.unselected,
                             ]}
                             onPress={() => setSelectedPlan(plan)}
                         >
                             <Text style={styles.planName}>{plan.name}</Text>
-                            <Text style={styles.planPrice}>{`R$ ${plan.price}/mês`}</Text>
+                            <Text style={styles.planPrice}>
+                                {`R$ ${plan.price}/mês`}
+                            </Text>
                             {plan.details.map((detail, idx) => (
                                 <Text key={idx} style={styles.detailItem}>
                                     • {detail}

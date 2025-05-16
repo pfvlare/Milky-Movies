@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -14,94 +14,27 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as themeConfig from "../theme";
-import { useRoute, RouteProp, useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import Toast from "react-native-toast-message";
 
+import * as themeConfig from "../theme";
 import { registerCard } from "../api/services/card/register";
 import { SubscriptionSchema, SubscriptionType } from "../schemas/card";
-import { RootStackParamList } from "../Navigation/Navigation";
+import { RootStackParamList } from "../Navigation/NavigationTypes";
 import { useUserStore } from "../store/userStore";
 import { editCard } from "../api/services/card/edit";
 import { formatExpiresCard } from "../utils/formatDate";
-import Toast from "react-native-toast-message";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 const theme = themeConfig.theme;
 
-type NavProp = NativeStackNavigationProp<RootStackParamList, "Subscription">;
+type Props = NativeStackScreenProps<RootStackParamList, "Subscription">;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.background,
-    paddingTop: Platform.OS === "ios" ? 50 : 30,
-    paddingHorizontal: 20,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  mainTitle: {
-    color: "white",
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  subtitle: {
-    color: "#6B7280",
-    fontSize: 18,
-  },
-  inputContainer: {
-    backgroundColor: "#374151",
-    borderRadius: 12,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-  },
-  input: {
-    color: "white",
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  errorText: {
-    color: "#F44336",
-    marginBottom: 8,
-  },
-  subscribeButton: {
-    backgroundColor: theme.text,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  subscribeButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-  cancelText: {
-    color: "#6B7280",
-    fontSize: 16,
-    textAlign: "center",
-  },
-  cancelLink: {
-    color: theme.text,
-    fontWeight: "bold",
-  },
-  menuButton: {
-    position: "absolute",
-    top: Platform.OS === "ios" ? 16 : 8,
-    left: 16,
-    zIndex: 10,
-    padding: 8,
-  },
-});
+export default function SubscriptionScreen({ navigation, route }: Props) {
+  const { userId } = route.params; // Agora é obrigatório e seguro
 
-export default function SubscriptionScreen() {
-  const navigation = useNavigation<NavProp>();
+  const user = useUserStore((state) => state.user);
+  const setSubscription = useUserStore((state) => state.setSubscription);
+
   const {
     control,
     handleSubmit,
@@ -110,25 +43,21 @@ export default function SubscriptionScreen() {
     resolver: zodResolver(SubscriptionSchema),
   });
 
-  type SubscriptionScreenRouteParams = {
-    userId?: string;
-  };
-  const route = useRoute<RouteProp<{ params?: SubscriptionScreenRouteParams }, 'params'>>();
-  const userId = route.params?.userId;
-
-  const user = useUserStore((state) => state.user);
-  const setSubscription = useUserStore((state) => state.setSubscription);
-
   const onSubmit = async (data: SubscriptionType) => {
     try {
+      console.log("🔁 Dados enviados:", data);
+      console.log("🧑‍💻 userId recebido:", userId);
+
       const [month, year] = data.expiry.split("/");
       const expiryDate = new Date(Number(`20${year}`), Number(month) - 1);
 
+      // Se o userId estiver presente (o que sempre estará agora)
       if (!userId && !user.id) {
         Alert.alert("Erro", "Usuário não identificado.");
         return;
       }
 
+      // Caso o usuário já tenha um cartão salvo
       if (!userId && user.id) {
         const newCard = await editCard({
           data: {
@@ -137,7 +66,7 @@ export default function SubscriptionScreen() {
             expiresDate: expiryDate.toISOString(),
             nameCard: "Cartão Principal",
           },
-          userId: user.id
+          userId: user.id,
         });
 
         setSubscription({
@@ -145,14 +74,12 @@ export default function SubscriptionScreen() {
           expiry: formatExpiresCard(newCard),
         });
 
-        Toast.show({
-          text1: "Cartão editado com sucesso!",
-        });
+        Toast.show({ text1: "Cartão editado com sucesso!" });
         navigation.goBack();
-
-        return
+        return;
       }
 
+      // Registro de novo cartão com o userId passado
       await registerCard({
         cardNumber: data.cardNumber,
         securityCode: data.cvv,
@@ -270,3 +197,66 @@ export default function SubscriptionScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.background,
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
+    paddingHorizontal: 20,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  mainTitle: {
+    color: "white",
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  subtitle: {
+    color: "#6B7280",
+    fontSize: 18,
+  },
+  inputContainer: {
+    backgroundColor: "#374151",
+    borderRadius: 12,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  input: {
+    color: "white",
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  errorText: {
+    color: "#F44336",
+    marginBottom: 8,
+  },
+  subscribeButton: {
+    backgroundColor: theme.text,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  subscribeButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  cancelText: {
+    color: "#6B7280",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  cancelLink: {
+    color: theme.text,
+    fontWeight: "bold",
+  },
+});

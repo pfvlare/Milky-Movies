@@ -6,11 +6,10 @@ import {
   StyleSheet,
   Image,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/Navigation";
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Splash">;
+type Props = NativeStackScreenProps<RootStackParamList, "Splash">;
 
 const styles = StyleSheet.create({
   container: {
@@ -36,13 +35,11 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function SplashScreen() {
-  const navigation = useNavigation<NavigationProp>();
-
+export default function SplashScreen({ navigation }: Props) {
   useEffect(() => {
     const start = async () => {
       await new Promise((res) => setTimeout(res, 1500)); // Simula carregamento
-      navigation.replace("Welcome"); // Sempre envia para a tela Welcome
+      navigation.replace("Welcome");
     };
 
     start();

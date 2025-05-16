@@ -8,16 +8,14 @@ import {
   TouchableWithoutFeedback,
   StyleSheet,
 } from "react-native";
-import {
-  useNavigation,
-  NavigationProp,
-} from "@react-navigation/native";
-import { RootStackParamList } from "../Navigation/Navigation";
+import { NavigationProp } from "@react-navigation/native";
+import { RootStackParamList } from "../Navigation/NavigationTypes"; // ✅ Corrigido
 
 type MenuModalProps = {
   visible: boolean;
   onClose?: () => void;
   trigger?: () => void;
+  navigation: NavigationProp<RootStackParamList>;
 };
 
 const styles = StyleSheet.create({
@@ -44,8 +42,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const MenuModal: React.FC<MenuModalProps> = ({ visible, onClose, trigger }) => {
-  const navigation = useNavigation < NavigationProp < RootStackParamList >> ();
+const MenuModal: React.FC<MenuModalProps> = ({ visible, onClose, trigger, navigation }) => {
   const slideAnim = useRef(new Animated.Value(-300)).current;
 
   const goTo = (screen: keyof RootStackParamList) => {

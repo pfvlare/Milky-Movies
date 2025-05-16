@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
-import Navigation from "./Navigation/Navigation";
+import React, { useEffect, useState } from "react";
+import { View, ActivityIndicator } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import "./global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-import { ActivityIndicator, View } from "react-native";
+
+import Navigation from "./Navigation/Navigation"; // <-- Caminho correto
+import "./global.css"; // se estiver usando Tailwind ou global CSS
 
 const queryClient = new QueryClient();
 
@@ -14,7 +15,7 @@ export default function App() {
 
   useEffect(() => {
     const init = async () => {
-      // Você pode deixar aqui uma leitura futura, se quiser validar algo
+      // Se quiser validar token, login ou algo aqui, pode
       await AsyncStorage.getItem("@user");
       setReady(true);
     };
