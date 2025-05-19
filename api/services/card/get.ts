@@ -12,7 +12,7 @@ export type CardData = {
 
 export const getCardByUserId = async (userId: string): Promise<CardData> => {
     try {
-        const response = await axios.get<CardData>(`${BACKEND_URL}/cards/${userId}`);
+        const response = await axios.get<CardData>(`${BACKEND_URL}/cards/user/${userId}`);
         return response.data;
     } catch (error: any) {
         const message =

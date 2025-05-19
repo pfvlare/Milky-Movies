@@ -142,9 +142,10 @@ const styles = StyleSheet.create({
 export default function ProfileScreen() {
   const navigation = useNavigation<NavProp>();
   const user = useUserStore((state) => state.user);
+  const subscription = useUserStore((state) => state.user?.subscription);
   const setUser = useUserStore((state) => state.setUser);
-  const clearUser = useUserStore((state) => state.clearUser);
   const setSubscription = useUserStore((state) => state.setSubscription);
+
 
   useEffect(() => {
     if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -159,6 +160,10 @@ export default function ProfileScreen() {
           if (parsedUser?.id) {
             setUser(parsedUser);
             const card = await getCardByUserId(parsedUser.id);
+              if (!card || card.error) {
+                console.warn("Cartão não encontrado para este usuário.");
+                return;
+            }
 
             setSubscription({
               cardNumber: card.cardNumber,
@@ -286,19 +291,23 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Cartão de Pagamento</Text>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionTitle}>Cartão</Text>
+                </View>
 
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Número</Text>
                   <Text style={styles.infoText}>
-                    {maskCard(user.subscription?.cardNumber)}
+                    {subscription?.cardNumber
+                      ? `**** **** **** ${subscription.cardNumber.slice(-4)}`
+                      : "Cartão não cadastrado"}
                   </Text>
                 </View>
 
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Validade</Text>
                   <Text style={styles.infoText}>
-                    {user.subscription?.expiry || "Não informado"}
+                    {subscription?.expiry || "Validade não disponível"}
                   </Text>
                 </View>
 
@@ -329,11 +338,11 @@ export default function ProfileScreen() {
                   <Text style={styles.infoLabel}>Status</Text>
                   <Text
                     style={{
-                      color: user.subscription?.isActive ? "#10B981" : "#EF4444",
+                      color: subscription?.isActive ? "#10B981" : "#EF4444",
                       fontWeight: "bold",
                     }}
                   >
-                    {user.subscription?.isActive ? "Ativa" : "Inativa"}
+                    {subscription?.isActive ? "Ativa" : "Inativa"}
                   </Text>
                 </View>
 
@@ -348,7 +357,7 @@ export default function ProfileScreen() {
                   </LinearGradient>
                 </TouchableOpacity>
 
-                {user.subscription?.isActive ? (
+                {subscription?.isActive ? (
                   <TouchableOpacity style={styles.cancelButton} onPress={handleCancelSubscription}>
                     <Text style={styles.buttonText}>Cancelar Assinatura</Text>
                   </TouchableOpacity>

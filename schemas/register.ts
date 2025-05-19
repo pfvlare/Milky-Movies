@@ -8,7 +8,7 @@ export const RegisterSchema = z.object({
     password: z.string().regex(/^\d{6}$/, 'A senha deve ter exatamente 6 números'),
     phone: z.string().regex(/^\d{11}$/, 'Digite 11 números'),
     address: z.string().min(1, 'Endereço é obrigatório'),
-    Subscription: SubscriptionSchema
+    subscription: SubscriptionSchema, // ← corrigido aqui
 });
 
 export type RegisterType = z.infer<typeof RegisterSchema>;

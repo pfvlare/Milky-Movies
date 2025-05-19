@@ -39,6 +39,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterType>({
+    mode: "onChange",
     resolver: zodResolver(RegisterSchema),
     defaultValues: {
       firstname: userToEdit?.firstname || "",
@@ -47,10 +48,15 @@ export default function RegisterScreen({ navigation, route }: Props) {
       phone: userToEdit?.phone || "",
       address: userToEdit?.address || "",
       password: "",
+      subscription: {
+        plan: selectedPlan?.code || "",
+        value: Number(selectedPlan?.price) || 0,
+      },
     },
   });
 
   const onSubmit = async (data: RegisterType) => {
+
     try {
       if (userToEdit) {
         const updatedUser = { ...userToEdit, ...data };
@@ -61,16 +67,24 @@ export default function RegisterScreen({ navigation, route }: Props) {
         navigation.goBack();
         return;
       }
-
-      const result = await registerUser({
+      // gera timestamps ISO
+      const now = new Date().toISOString();
+      const oneMonthLater = new Date();
+      oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+      
+      // monta o objeto completo de inscrição
+      const payload = {
         ...data,
         subscription: {
-          plan: selectedPlan.code, // ← Envia "BASIC", "STANDARD" ou "PREMIUM"
+          plan: selectedPlan.code,
           value: Number(selectedPlan.price),
+          registeredAt: now,
+          expiresAt: oneMonthLater.toISOString(),
         },
-      });
+      };
 
-      console.log("🧾 Resposta do backend:", result);
+      console.log('📦 Dados enviados:', payload);
+      const result = await registerUser(payload);
 
       const userId = result?.id || result?.user?.id;
       if (!userId) throw new Error("ID do usuário não retornado.");
@@ -219,7 +233,10 @@ export default function RegisterScreen({ navigation, route }: Props) {
 
         <TouchableOpacity
           style={styles.registerButton}
-          onPress={handleSubmit(onSubmit)}
+          onPress={() => {
+            console.log("🖱️ Botão Continuar clicado");
+            handleSubmit(onSubmit)();
+          }}
         >
           <Text style={styles.registerButtonText}>
             {userToEdit ? "Salvar Alterações" : "Continuar"}

@@ -1,17 +1,18 @@
 import axios from "axios";
 import { BACKEND_URL } from "@env";
 
-type RegisterCardPayload = {
-    userId: string;
+type EditCardPayload = {
+    cardId: string;
     data: {
         cardNumber: string;
         securityCode: string;
         expiresDate: string;
         nameCard: string;
+        userId: string;
     };
 };
 
-type RegisterCardResponse = {
+type EditCardResponse = {
     id: string;
     cardNumber: string;
     securityCode: string;
@@ -21,13 +22,13 @@ type RegisterCardResponse = {
 };
 
 export const editCard = async (
-    payload: RegisterCardPayload
-): Promise<RegisterCardResponse> => {
+    payload: EditCardPayload
+): Promise<EditCardResponse> => {
     try {
-        const response = await axios.post<RegisterCardResponse>(
-            `${BACKEND_URL}/cards/${payload.userId}`,
+        const response = await axios.put<EditCardResponse>(
+            `${BACKEND_URL}/cards/${payload.cardId}`,
             payload.data
-        );
+        );  
         return response.data;
     } catch (error: any) {
         const message =

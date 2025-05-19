@@ -88,6 +88,12 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
         userId,
       });
 
+      setSubscription({
+        cardNumber: data.cardNumber,
+        expiry: data.expiry,
+        isActive: true,
+      });
+
       const stored = await AsyncStorage.getItem("@user");
       const parsed = stored ? JSON.parse(stored) : {};
       const updated = { ...parsed, isSubscribed: true };
