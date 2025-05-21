@@ -3,14 +3,14 @@ import {
     View,
     Text,
     TouchableWithoutFeedback,
+    TouchableOpacity,
     ScrollView,
     Image,
     Dimensions,
     StyleSheet,
 } from 'react-native';
-import { NavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { image500, fallBackMoviePoster } from '../api/moviedb';
-import { RootStackParamList } from '../Navigation/Navigation';
 
 const { width, height } = Dimensions.get('window');
 
@@ -36,9 +36,10 @@ const styles = StyleSheet.create({
     movieItem: {
         marginRight: 24,
         alignItems: 'flex-start',
+        width: width * 0.75,
     },
     moviePoster: {
-        width: width * 0.75,
+        width: '100%',
         height: height * 0.55,
         borderRadius: 24,
     },
@@ -46,19 +47,27 @@ const styles = StyleSheet.create({
         color: '#D1D5DB',
         fontSize: 14,
         marginTop: 8,
-        marginBottom: 10,
+        marginBottom: 4,
+    },
+    watchButton: {
+        backgroundColor: '#ff006e',
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        alignSelf: 'flex-start',
+    },
+    watchText: {
+        color: 'white',
+        fontSize: 13,
+        fontWeight: 'bold',
     },
 });
 
-type Props = {
-    data: any[];
-    navigation: NavigationProp<RootStackParamList>;
-};
+export default function TrendingMovies({ data }: { data: any[] }) {
+    const navigation = useNavigation();
 
-export default function TrendingMovies({ data, navigation }: Props) {
-    const handleClick = (item: any) => {
-        navigation.navigate('Movie', item);
-    };
+    const getYouTubeSearchUrl = (title: string) =>
+        `https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' trailer')}`;
 
     return (
         <View style={styles.container}>
@@ -72,8 +81,8 @@ export default function TrendingMovies({ data, navigation }: Props) {
                 contentContainerStyle={styles.scrollViewContent}
             >
                 {data.map((item, index) => (
-                    <TouchableWithoutFeedback key={index} onPress={() => handleClick(item)}>
-                        <View style={styles.movieItem}>
+                    <View key={index} style={styles.movieItem}>
+                        <TouchableWithoutFeedback onPress={() => navigation.navigate('Movie', item)}>
                             <Image
                                 source={
                                     item.poster_path
@@ -82,11 +91,23 @@ export default function TrendingMovies({ data, navigation }: Props) {
                                 }
                                 style={styles.moviePoster}
                             />
-                            <Text style={styles.movieTitle}>
-                                {item.title?.length > 20 ? item.title.slice(0, 20) + '...' : item.title}
-                            </Text>
-                        </View>
-                    </TouchableWithoutFeedback>
+                        </TouchableWithoutFeedback>
+
+                        <Text style={styles.movieTitle}>
+                            {item.title?.length > 20 ? item.title.slice(0, 20) + '...' : item.title}
+                        </Text>
+
+                        <TouchableOpacity
+                            style={styles.watchButton}
+                            onPress={() =>
+                                navigation.navigate('PlayerScreen', {
+                                    videoUrl: getYouTubeSearchUrl(item.title),
+                                })
+                            }
+                        >
+                            <Text style={styles.watchText}>▶ Assistir</Text>
+                        </TouchableOpacity>
+                    </View>
                 ))}
             </ScrollView>
         </View>

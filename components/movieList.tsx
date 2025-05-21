@@ -9,8 +9,7 @@ import {
     Dimensions,
     StyleSheet,
 } from 'react-native';
-import { NavigationProp } from '@react-navigation/native';
-import { RootStackParamList } from '../Navigation/NavigationTypes';
+import { useNavigation } from '@react-navigation/native';
 import { fallBackMoviePoster, image185 } from '../api/moviedb';
 import { styles as themeStyles } from '../theme';
 
@@ -40,10 +39,11 @@ const styles = StyleSheet.create({
     movieItem: {
         marginRight: 16,
         alignItems: 'flex-start',
+        width: width * 0.33,
     },
     moviePoster: {
         borderRadius: 24,
-        width: width * 0.33,
+        width: '100%',
         height: height * 0.22,
     },
     movieTitle: {
@@ -52,16 +52,34 @@ const styles = StyleSheet.create({
         marginTop: 8,
         marginLeft: 4,
     },
+    watchButton: {
+        marginTop: 4,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        backgroundColor: '#ff006e',
+        borderRadius: 6,
+        alignSelf: 'flex-start',
+        marginLeft: 4,
+    },
+    watchText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
 });
 
 type Props = {
     title: string;
     data: any[];
     hiddenSeeAll?: boolean;
-    navigation: NavigationProp<RootStackParamList>;
 };
 
-export default function MovieList({ title, data, hiddenSeeAll, navigation }: Props) {
+export default function MovieList({ title, data, hiddenSeeAll }: Props) {
+    const navigation = useNavigation();
+
+    const getYouTubeSearchUrl = (title: string) =>
+        `https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' trailer')}`;
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -79,11 +97,8 @@ export default function MovieList({ title, data, hiddenSeeAll, navigation }: Pro
                 contentContainerStyle={styles.scrollContent}
             >
                 {data.map((item, index) => (
-                    <TouchableWithoutFeedback
-                        key={index}
-                        onPress={() => navigation.push('Movie', item)}
-                    >
-                        <View style={styles.movieItem}>
+                    <View key={index} style={styles.movieItem}>
+                        <TouchableWithoutFeedback onPress={() => navigation.navigate('Movie', item)}>
                             <Image
                                 source={
                                     item.poster_path
@@ -92,11 +107,23 @@ export default function MovieList({ title, data, hiddenSeeAll, navigation }: Pro
                                 }
                                 style={styles.moviePoster}
                             />
-                            <Text style={styles.movieTitle}>
-                                {item.title.length > 14 ? item.title.slice(0, 14) + '...' : item.title}
-                            </Text>
-                        </View>
-                    </TouchableWithoutFeedback>
+                        </TouchableWithoutFeedback>
+
+                        <Text style={styles.movieTitle}>
+                            {item.title.length > 14 ? item.title.slice(0, 14) + '...' : item.title}
+                        </Text>
+
+                        <TouchableOpacity
+                            style={styles.watchButton}
+                            onPress={() =>
+                                navigation.navigate('PlayerScreen', {
+                                    videoUrl: getYouTubeSearchUrl(item.title),
+                                })
+                            }
+                        >
+                            <Text style={styles.watchText}>▶ Assistir</Text>
+                        </TouchableOpacity>
+                    </View>
                 ))}
             </ScrollView>
         </View>

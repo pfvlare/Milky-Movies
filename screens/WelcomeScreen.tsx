@@ -12,6 +12,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/Navigation";
 import { theme } from "../theme";
+import { LinearGradient } from "expo-linear-gradient";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Welcome">;
 
@@ -27,8 +28,7 @@ export default function WelcomeScreen() {
                 />
 
                 <Text style={styles.title}>
-                    Bem-vindo ao{" "}
-                    <Text style={styles.highlight}>Milky Movies</Text>
+                    Bem-vindo ao <Text style={styles.highlight}>Milky Movies</Text>
                 </Text>
 
                 <Text style={styles.subtitle}>
@@ -36,12 +36,16 @@ export default function WelcomeScreen() {
                     múltiplos dispositivos.
                 </Text>
 
-                <TouchableOpacity
-                    style={styles.buttonPrimary}
-                    onPress={() => navigation.navigate("ChoosePlan")}
+                <LinearGradient
+                    colors={["#EC4899", "#D946EF"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.gradientButton}
                 >
-                    <Text style={styles.buttonText}>Quero me cadastrar</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.navigate("ChoosePlan")}>
+                        <Text style={styles.buttonText}>Quero me cadastrar</Text>
+                    </TouchableOpacity>
+                </LinearGradient>
 
                 <TouchableOpacity
                     style={styles.buttonSecondary}
@@ -90,11 +94,11 @@ const styles = StyleSheet.create({
         marginBottom: 24,
         paddingHorizontal: 10,
     },
-    buttonPrimary: {
-        backgroundColor: theme.text,
-        paddingVertical: 14,
+    gradientButton: {
         borderRadius: 10,
+        paddingVertical: 14,
         paddingHorizontal: 32,
+        alignItems: "center",
         marginBottom: 16,
     },
     buttonText: {

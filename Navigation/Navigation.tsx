@@ -16,8 +16,9 @@ import ProfileScreen from "../screens/ProfileScreen";
 import ChoosePlanScreen from "../screens/ChoosePlanScreen";
 import ChangePlanScreen from "../screens/ChangePlanScreen";
 import ConfirmCardScreen from "../screens/ConfirmCardScreen";
+import PlayerScreen from "../screens/PlayerScreen"; // 👈 Adicionado aqui
 
-import { RootStackParamList } from "./NavigationTypes"; // ✅ TIPOS vindos do arquivo separado
+import { RootStackParamList } from "./NavigationTypes";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -46,6 +47,7 @@ const Navigation = ({ initialRoute = "Welcome" }: NavigationProps) => {
         <Stack.Screen name="ChoosePlan" component={ChoosePlanScreen} />
         <Stack.Screen name="ChangePlan" component={ChangePlanScreen} />
         <Stack.Screen name="ConfirmCard" component={ConfirmCardScreen} />
+        <Stack.Screen name="PlayerScreen" component={PlayerScreen} options={{ headerShown: true, title: 'Assistindo...' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -11,57 +11,102 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
-import * as themeConfig from "../theme";
+import { LinearGradient } from "expo-linear-gradient";
 import { RootStackParamList } from "../Navigation/Navigation";
-
-// ✅ Tipo do plano atualizado
-export type Plan = {
-    id: string;
-    name: string;
-    price: string;
-    code: "BASIC" | "STANDARD" | "PREMIUM"; // <- Esse código é o que o backend espera
-};
-
-const theme = themeConfig.theme;
+import { theme } from "../theme";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "ChoosePlan">;
 
 const plans = [
     {
         id: "basic",
-        name: "Plano Básico",        // ← exibido para o usuário
+        name: "Plano Básico",
         price: "18.90",
-        code: "basic",               // ← enviado para o backend
-        details: [
-            "1 dispositivo por vez",
-            "Qualidade SD (480p)",
-            "Com anúncios",
-        ],
+        code: "basic",
+        details: ["1 dispositivo por vez", "Qualidade SD (480p)", "Com anúncios"],
     },
     {
         id: "intermediary",
-        name: "Plano Padrão",        // ← nome amigável
+        name: "Plano Padrão",
         price: "39.90",
-        code: "intermediary",        // ← valor real aceito pelo enum do Prisma
-        details: [
-            "2 dispositivos ao mesmo tempo",
-            "Qualidade HD (720p)",
-            "Sem anúncios",
-        ],
+        code: "intermediary",
+        details: ["2 dispositivos ao mesmo tempo", "Qualidade HD (720p)", "Sem anúncios"],
     },
     {
         id: "complete",
         name: "Plano Premium",
         price: "55.90",
         code: "complete",
-        details: [
-            "4 dispositivos ao mesmo tempo",
-            "Qualidade Ultra HD (4K)",
-            "Sem anúncios",
-        ],
+        details: ["4 dispositivos ao mesmo tempo", "Qualidade Ultra HD (4K)", "Sem anúncios"],
     },
 ];
 
+export default function ChoosePlanScreen() {
+    const navigation = useNavigation<NavigationProp>();
+    const [selectedPlan, setSelectedPlan] = useState<any | null>(null);
+
+    const handleContinue = () => {
+        if (!selectedPlan) return;
+        navigation.navigate("Register", { selectedPlan });
+    };
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => {
+                    if (navigation.canGoBack()) navigation.goBack();
+                    else navigation.navigate("Splash");
+                }}
+            >
+                <Ionicons name="arrow-back" size={24} color="#EC4899" />
+            </TouchableOpacity>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.innerWrapper}>
+                    <View style={styles.header}>
+                        <Text style={styles.mainTitle}>
+                            <Text style={{ color: theme.text }}>M</Text>ilky{" "}
+                            <Text style={{ color: theme.text }}>M</Text>ovies
+                        </Text>
+                        <Text style={styles.subtitle}>Escolha seu plano</Text>
+                    </View>
+
+                    {plans.map((plan) => (
+                        <TouchableOpacity
+                            key={plan.id}
+                            style={[
+                                styles.planCard,
+                                selectedPlan?.id === plan.id ? styles.selected : styles.unselected,
+                            ]}
+                            onPress={() => setSelectedPlan(plan)}
+                        >
+                            <Text style={styles.planName}>{plan.name}</Text>
+                            <Text style={styles.planPrice}>R$ {plan.price}/mês</Text>
+                            {plan.details.map((d, i) => (
+                                <Text key={i} style={styles.detailItem}>• {d}</Text>
+                            ))}
+                        </TouchableOpacity>
+                    ))}
+
+                    <LinearGradient
+                        colors={["#EC4899", "#D946EF"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={[
+                            styles.continueButton,
+                            !selectedPlan && { opacity: 0.5 },
+                        ]}
+                    >
+                        <TouchableOpacity onPress={handleContinue} disabled={!selectedPlan}>
+                            <Text style={styles.buttonText}>Continuar</Text>
+                        </TouchableOpacity>
+                    </LinearGradient>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
+    );
+}
 
 const styles = StyleSheet.create({
     container: {
@@ -123,94 +168,16 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     continueButton: {
-        backgroundColor: theme.text,
-        paddingVertical: 14,
         borderRadius: 12,
+        paddingVertical: 16,
         alignItems: "center",
         marginTop: 20,
-        opacity: 1,
-    },
-    disabledButton: {
-        opacity: 0.5,
+        marginBottom: 40,
     },
     buttonText: {
         color: "white",
         fontWeight: "bold",
         fontSize: 18,
+        textAlign: "center",
     },
 });
-
-export default function ChoosePlanScreen() {
-    const navigation = useNavigation<NavigationProp>();
-    const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-
-    const handleContinue = () => {
-        if (!selectedPlan) return;
-
-        // ✅ Agora enviando o `code`, que será usado no RegisterScreen
-        navigation.navigate("Register", { selectedPlan });
-    };
-
-    return (
-        <SafeAreaView style={styles.container}>
-            <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => {
-                    if (navigation.canGoBack()) {
-                        navigation.goBack();
-                    } else {
-                        navigation.navigate("Splash");
-                    }
-                }}
-            >
-                <Ionicons name="arrow-back" size={24} color="#EC4899" />
-            </TouchableOpacity>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.innerWrapper}>
-                    <View style={styles.header}>
-                        <Text style={styles.mainTitle}>
-                            <Text style={{ color: theme.text }}>M</Text>ilky{" "}
-                            <Text style={{ color: theme.text }}>M</Text>ovies
-                        </Text>
-                        <Text style={styles.subtitle}>Escolha seu plano</Text>
-                    </View>
-
-                    {plans.map((plan) => (
-                        <TouchableOpacity
-                            key={plan.id}
-                            style={[
-                                styles.planCard,
-                                selectedPlan?.id === plan.id
-                                    ? styles.selected
-                                    : styles.unselected,
-                            ]}
-                            onPress={() => setSelectedPlan(plan)}
-                        >
-                            <Text style={styles.planName}>{plan.name}</Text>
-                            <Text style={styles.planPrice}>
-                                {`R$ ${plan.price}/mês`}
-                            </Text>
-                            {plan.details.map((detail, idx) => (
-                                <Text key={idx} style={styles.detailItem}>
-                                    • {detail}
-                                </Text>
-                            ))}
-                        </TouchableOpacity>
-                    ))}
-
-                    <TouchableOpacity
-                        style={[
-                            styles.continueButton,
-                            !selectedPlan && styles.disabledButton,
-                        ]}
-                        onPress={handleContinue}
-                        disabled={!selectedPlan}
-                    >
-                        <Text style={styles.buttonText}>Continuar</Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
-    );
-}

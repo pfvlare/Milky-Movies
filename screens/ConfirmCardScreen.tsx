@@ -11,38 +11,10 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as themeConfig from "../theme";
 
 const theme = themeConfig.theme;
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: theme.background,
-        paddingTop: Platform.OS === "ios" ? 50 : 30,
-        paddingHorizontal: 24,
-        justifyContent: "center",
-    },
-    mainTitle: {
-        color: "white",
-        fontSize: 28,
-        fontWeight: "bold",
-        marginBottom: 24,
-        textAlign: "center",
-    },
-    button: {
-        backgroundColor: theme.text,
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: "center",
-        marginBottom: 16,
-    },
-    buttonText: {
-        color: "white",
-        fontWeight: "bold",
-        fontSize: 18,
-    },
-});
 
 export default function ConfirmCardScreen() {
     const navigation = useNavigation();
@@ -94,13 +66,55 @@ export default function ConfirmCardScreen() {
                 Deseja continuar com o mesmo cartão?
             </Text>
 
-            <TouchableOpacity style={styles.button} onPress={handleUseCurrentCard}>
-                <Text style={styles.buttonText}>Sim, manter cartão atual</Text>
-            </TouchableOpacity>
+            <LinearGradient
+                colors={["#EC4899", "#D946EF"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientButton}
+            >
+                <TouchableOpacity onPress={handleUseCurrentCard}>
+                    <Text style={styles.buttonText}>Sim, manter cartão atual</Text>
+                </TouchableOpacity>
+            </LinearGradient>
 
-            <TouchableOpacity style={styles.button} onPress={handleRegisterNewCard}>
-                <Text style={styles.buttonText}>Não, cadastrar novo cartão</Text>
-            </TouchableOpacity>
+            <LinearGradient
+                colors={["#EC4899", "#D946EF"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientButton}
+            >
+                <TouchableOpacity onPress={handleRegisterNewCard}>
+                    <Text style={styles.buttonText}>Não, cadastrar novo cartão</Text>
+                </TouchableOpacity>
+            </LinearGradient>
         </SafeAreaView>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: theme.background,
+        paddingTop: Platform.OS === "ios" ? 50 : 30,
+        paddingHorizontal: 24,
+        justifyContent: "center",
+    },
+    mainTitle: {
+        color: "white",
+        fontSize: 28,
+        fontWeight: "bold",
+        marginBottom: 24,
+        textAlign: "center",
+    },
+    gradientButton: {
+        borderRadius: 12,
+        paddingVertical: 16,
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    buttonText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 18,
+    },
+});

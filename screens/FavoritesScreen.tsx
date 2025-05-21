@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#111827",
     paddingTop: 50,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   backButton: {
     position: "absolute",
@@ -59,6 +59,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
+    paddingHorizontal: 2,
   },
   movieItem: {
     marginBottom: 16,
@@ -127,7 +128,10 @@ export default function FavoritesScreen() {
             Nenhum filme adicionado aos favoritos.
           </Text>
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 4 }}
+          >
             <View style={styles.favoritesGrid}>
               {favorites.map((item, index) => (
                 <TouchableOpacity
@@ -144,14 +148,13 @@ export default function FavoritesScreen() {
                     style={styles.moviePoster}
                   />
                   <Text style={styles.movieTitle}>
-                    {item.title?.length > 20
-                      ? item.title.slice(0, 20) + "..."
-                      : item.title}
+                    {item.title?.length > 20 ? item.title.slice(0, 20) + "..." : item.title}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </ScrollView>
+
         )}
       </SafeAreaView>
     </AppLayout>

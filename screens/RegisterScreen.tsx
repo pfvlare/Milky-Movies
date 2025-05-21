@@ -15,13 +15,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { LinearGradient } from "expo-linear-gradient";
 
 import * as themeConfig from "../theme";
 import { RegisterSchema, RegisterType } from "../schemas/register";
 import { RootStackParamList } from "../Navigation/Navigation";
-import { registerUser } from "../api/services/user/register";
 import { useUserStore } from "../store/userStore";
-
 
 const theme = themeConfig.theme;
 
@@ -56,23 +55,20 @@ export default function RegisterScreen({ navigation, route }: Props) {
   });
 
   const onSubmit = async (data: RegisterType) => {
-
     try {
       if (userToEdit) {
         const updatedUser = { ...userToEdit, ...data };
         setUser(updatedUser);
         await AsyncStorage.setItem("@user", JSON.stringify(updatedUser));
-
         Toast.show({ type: "success", text1: "Dados atualizados com sucesso!" });
         navigation.goBack();
         return;
       }
-      // gera timestamps ISO
+
       const now = new Date().toISOString();
       const oneMonthLater = new Date();
       oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-      
-      // monta o objeto completo de inscrição
+
       const payload = {
         ...data,
         subscription: {
@@ -83,14 +79,10 @@ export default function RegisterScreen({ navigation, route }: Props) {
         },
       };
 
-      console.log('📦 Dados enviados:', payload);
-      const result = await registerUser(payload);
+      console.log("📦 Dados simulados (sem API):", payload);
 
-      const userId = result?.id || result?.user?.id;
-      if (!userId) throw new Error("ID do usuário não retornado.");
-
-      const newUser = {
-        id: userId,
+      const simulatedUser = {
+        id: "simulado-123",
         firstname: data.firstname,
         lastname: data.lastname,
         email: data.email,
@@ -103,24 +95,21 @@ export default function RegisterScreen({ navigation, route }: Props) {
         },
       };
 
-      setUser(newUser);
-      await AsyncStorage.setItem("@user", JSON.stringify(newUser));
+      setUser(simulatedUser);
+      await AsyncStorage.setItem("@user", JSON.stringify(simulatedUser));
       await AsyncStorage.setItem("@isLoggedIn", "true");
 
-      Toast.show({ type: "success", text1: "Cadastro realizado com sucesso!" });
-
-      navigation.replace("Subscription", { userId });
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Erro inesperado, tente novamente.";
-
-      Toast.show({ type: "error", text1: "Erro", text2: message });
-      console.error("❌ Erro:", error);
+      Toast.show({ type: "success", text1: "Modo offline: cadastro simulado!" });
+      navigation.replace("Subscription", { userId: "simulado-123" });
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Erro inesperado",
+        text2: "Algo deu errado mesmo offline",
+      });
+      console.error("❌ Erro inesperado:", error);
     }
   };
-
 
   const fields = [
     { name: "firstname", placeholder: "Nome" },
@@ -137,7 +126,6 @@ export default function RegisterScreen({ navigation, route }: Props) {
           <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
             Nenhum plano foi selecionado. Por favor, volte e escolha um plano antes de continuar.
           </Text>
-
           <TouchableOpacity
             style={[styles.registerButton, { marginTop: 24 }]}
             onPress={() => navigation.replace("ChoosePlan")}
@@ -191,9 +179,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
               )}
             />
             {errors[field.name] && (
-              <Text style={styles.errorText}>
-                {errors[field.name]?.message}
-              </Text>
+              <Text style={styles.errorText}>{errors[field.name]?.message}</Text>
             )}
           </View>
         ))}
@@ -216,11 +202,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
                     value={value}
                   />
                   <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
-                    <Ionicons
-                      name={showPassword ? "eye-off" : "eye"}
-                      size={22}
-                      color="#9CA3AF"
-                    />
+                    <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color="#9CA3AF" />
                   </TouchableOpacity>
                 </View>
               )}
@@ -231,17 +213,18 @@ export default function RegisterScreen({ navigation, route }: Props) {
           </View>
         )}
 
-        <TouchableOpacity
-          style={styles.registerButton}
-          onPress={() => {
-            console.log("🖱️ Botão Continuar clicado");
-            handleSubmit(onSubmit)();
-          }}
+        <LinearGradient
+          colors={["#EC4899", "#D946EF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientButton}
         >
-          <Text style={styles.registerButtonText}>
-            {userToEdit ? "Salvar Alterações" : "Continuar"}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={handleSubmit(onSubmit)}>
+            <Text style={styles.registerButtonText}>
+              {userToEdit ? "Salvar Alterações" : "Continuar"}
+            </Text>
+          </TouchableOpacity>
+        </LinearGradient>
 
         {!userToEdit && (
           <TouchableOpacity onPress={() => navigation.navigate("Login")}>
@@ -254,6 +237,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -296,8 +280,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginHorizontal: 18,
   },
-  registerButton: {
-    backgroundColor: theme.text,
+  gradientButton: {
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
@@ -336,4 +319,3 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
-

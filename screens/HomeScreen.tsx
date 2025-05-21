@@ -87,6 +87,22 @@ export default function HomeScreen({ navigation, route }: Props) {
 
   const handleMenu = () => setShowMenu((prev) => !prev);
 
+  const fetchVideoUrl = async (movieId: number): Promise<string | null> => {
+    try {
+      const res = await fetch(
+        `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=55b68cfbb6e0be44a4a7bd493e1aeb66&language=pt-BR`
+      );
+      const data = await res.json();
+      const trailer = data.results.find(
+        (v: any) => v.site === "YouTube" && v.type === "Trailer"
+      );
+      return trailer ? `https://www.youtube.com/embed/${trailer.key}` : null;
+    } catch (error) {
+      console.error("Erro ao buscar vídeo:", error);
+      return null;
+    }
+  };
+
   return (
     <AppLayout>
       <View style={styles.container}>
@@ -132,7 +148,7 @@ export default function HomeScreen({ navigation, route }: Props) {
             contentContainerStyle={styles.scrollContainer}
           >
             {trendingMovies?.results?.length > 0 && (
-              <TrendingMovies data={trendingMovies.results} navigation={navigation} />
+              <TrendingMovies data={trendingMovies.results} navigation={navigation} fetchVideoUrl={fetchVideoUrl} />
             )}
             {upcomingMovies?.results?.length > 0 && (
               <MovieList
@@ -140,6 +156,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 data={upcomingMovies.results}
                 hiddenSeeAll={false}
                 navigation={navigation}
+                fetchVideoUrl={fetchVideoUrl}
               />
             )}
             {topRatedMovies?.results?.length > 0 && (
@@ -148,6 +165,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 data={topRatedMovies.results}
                 hiddenSeeAll={false}
                 navigation={navigation}
+                fetchVideoUrl={fetchVideoUrl}
               />
             )}
           </ScrollView>

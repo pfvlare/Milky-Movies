@@ -22,7 +22,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Cast from "../components/cast";
 import MovieList from "../components/movieList.tsx";
 import Loading from "../components/loading";
-
 import {
   fallBackMoviePoster,
   fetchMoviesCredits,
@@ -30,18 +29,13 @@ import {
   fetchSimilarMovies,
   image500,
 } from "../api/moviedb";
-
 import * as themeConfig from "../theme";
-const theme = themeConfig.theme;
 
+const theme = themeConfig.theme;
 const { width, height } = Dimensions.get("window");
-const ios = Platform.OS === "ios";
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#111827",
-  },
+  container: { flex: 1, backgroundColor: "#111827" },
   safeArea: {
     position: "absolute",
     zIndex: 20,
@@ -114,6 +108,19 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: "justify",
   },
+  watchButton: {
+    backgroundColor: "#ff006e",
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    alignSelf: "center",
+  },
+  watchText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
 
 export default function MovieScreen() {
@@ -176,6 +183,13 @@ export default function MovieScreen() {
     } catch (err) {
       console.log("Erro ao favoritar:", err);
     }
+  };
+
+  // Gera URL de busca no YouTube
+  const getYouTubeSearchUrl = (title: string) => {
+    return `https://www.youtube.com/results?search_query=${encodeURIComponent(
+      title + " trailer"
+    )}`;
   };
 
   return (
@@ -248,6 +262,17 @@ export default function MovieScreen() {
         <Text style={styles.overview}>
           {movie?.overview || "Descrição não disponível."}
         </Text>
+
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate("PlayerScreen", {
+              videoUrl: getYouTubeSearchUrl(movie.title),
+            })
+          }
+          style={styles.watchButton}
+        >
+          <Text style={styles.watchText}>▶ Assistir</Text>
+        </TouchableOpacity>
       </View>
 
       {cast.length > 0 && <Cast navigation={navigation} cast={cast} />}

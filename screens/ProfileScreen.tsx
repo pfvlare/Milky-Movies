@@ -139,13 +139,14 @@ const styles = StyleSheet.create({
   },
 });
 
+// ... (mesmos imports de antes)
+
 export default function ProfileScreen() {
   const navigation = useNavigation<NavProp>();
   const user = useUserStore((state) => state.user);
   const subscription = useUserStore((state) => state.user?.subscription);
   const setUser = useUserStore((state) => state.setUser);
   const setSubscription = useUserStore((state) => state.setSubscription);
-
 
   useEffect(() => {
     if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -160,9 +161,9 @@ export default function ProfileScreen() {
           if (parsedUser?.id) {
             setUser(parsedUser);
             const card = await getCardByUserId(parsedUser.id);
-              if (!card || card.error) {
-                console.warn("Cartão não encontrado para este usuário.");
-                return;
+            if (!card || card.error) {
+              console.warn("Cartão não encontrado para este usuário.");
+              return;
             }
 
             setSubscription({
@@ -254,6 +255,7 @@ export default function ProfileScreen() {
 
           {user?.id ? (
             <>
+              {/* Dados pessoais */}
               <View style={styles.section}>
                 <View style={styles.sectionTitleRow}>
                   <Text style={styles.sectionTitle}>Dados Pessoais</Text>
@@ -290,6 +292,7 @@ export default function ProfileScreen() {
                 </View>
               </View>
 
+              {/* Cartão */}
               <View style={styles.section}>
                 <View style={styles.sectionTitleRow}>
                   <Text style={styles.sectionTitle}>Cartão</Text>
@@ -318,11 +321,12 @@ export default function ProfileScreen() {
                     end={{ x: 1, y: 1 }}
                     style={styles.gradientButton}
                   >
-                    <Text style={styles.buttonText}>Alterar forma de pagamento</Text>
+                    <Text style={styles.buttonText}>Alterar Cartão de Crédito</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
 
+              {/* Assinatura */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Assinatura</Text>
 
@@ -346,7 +350,16 @@ export default function ProfileScreen() {
                   </Text>
                 </View>
 
-                <TouchableOpacity onPress={() => navigation.navigate("ChangePlan")}>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("ChangePlan", {
+                      currentPlan: {
+                        name: subscription?.planName,
+                        price: subscription?.planPrice,
+                      },
+                    })
+                  }
+                >
                   <LinearGradient
                     colors={["#EC4899", "#D946EF"]}
                     start={{ x: 0, y: 0 }}
@@ -357,24 +370,14 @@ export default function ProfileScreen() {
                   </LinearGradient>
                 </TouchableOpacity>
 
-                {subscription?.isActive ? (
+                {subscription?.isActive && (
                   <TouchableOpacity style={styles.cancelButton} onPress={handleCancelSubscription}>
                     <Text style={styles.buttonText}>Cancelar Assinatura</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity onPress={handleUpdateCard}>
-                    <LinearGradient
-                      colors={["#EC4899", "#D946EF"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.gradientButton}
-                    >
-                      <Text style={styles.buttonText}>Renovar Plano</Text>
-                    </LinearGradient>
                   </TouchableOpacity>
                 )}
               </View>
 
+              {/* Logout */}
               <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                 <Text style={styles.buttonText}>Sair</Text>
               </TouchableOpacity>

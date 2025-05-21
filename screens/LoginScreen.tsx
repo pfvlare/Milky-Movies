@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { LinearGradient } from "expo-linear-gradient";
 
 import AppLayout from "../components/AppLayout";
 import { loginUser } from "../api/services/user/login";
@@ -24,82 +25,6 @@ import { RootStackParamList } from "../Navigation/Navigation";
 import { theme } from "../theme";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.background,
-    paddingTop: Platform.OS === "ios" ? 50 : 30,
-    paddingHorizontal: 20,
-    justifyContent: "center",
-  },
-  titleContainer: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  mainTitle: {
-    color: "white",
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  subtitle: {
-    color: "#6B7280",
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  inputContainer: {
-    backgroundColor: "#374151",
-    borderRadius: 12,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 18,
-  },
-  input: {
-    color: "white",
-    paddingVertical: 12,
-    fontSize: 16,
-    flex: 1,
-  },
-  errorText: {
-    color: "#F44336",
-    marginBottom: 8,
-    marginHorizontal: 18,
-  },
-  loginButton: {
-    backgroundColor: "#EC4899",
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginBottom: 16,
-    marginHorizontal: 18,
-  },
-  loginButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-  registerText: {
-    color: "#6B7280",
-    fontSize: 16,
-    textAlign: "center",
-  },
-  registerLink: {
-    color: "#EC4899",
-    fontWeight: "bold",
-  },
-  cancelButton: {
-    marginTop: 24,
-  },
-  cancelButtonText: {
-    textAlign: "center",
-    fontSize: 14,
-    color: "#4B5563",
-    textDecorationLine: "underline",
-  },
-});
 
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -120,14 +45,10 @@ export default function LoginScreen() {
       });
 
       if (user?.id) {
-        // ✅ Atualiza Zustand store
         setUser(user);
-
-        // ✅ Salva no AsyncStorage
         await AsyncStorage.setItem("@user", JSON.stringify(user));
         await AsyncStorage.setItem("@isLoggedIn", "true");
 
-        // Redirecionamento
         if (user.isSubscribed) {
           navigation.replace("Home");
         } else {
@@ -191,9 +112,7 @@ export default function LoginScreen() {
                 maxLength={6}
                 keyboardType="numeric"
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword((prev) => !prev)}
-              >
+              <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
                 <Ionicons
                   name={showPassword ? "eye-off" : "eye"}
                   size={22}
@@ -207,12 +126,17 @@ export default function LoginScreen() {
           <Text style={styles.errorText}>{errors.password.message}</Text>
         )}
 
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={handleSubmit(onSubmit)}
+        {/* Botão Entrar com degradê */}
+        <LinearGradient
+          colors={["#EC4899", "#D946EF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientButton}
         >
-          <Text style={styles.loginButtonText}>Entrar</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={handleSubmit(onSubmit)}>
+            <Text style={styles.loginButtonText}>Entrar</Text>
+          </TouchableOpacity>
+        </LinearGradient>
 
         <TouchableOpacity onPress={() => navigation.replace("ChoosePlan")}>
           <Text style={styles.registerText}>
@@ -230,3 +154,78 @@ export default function LoginScreen() {
     </AppLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.background,
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
+    paddingHorizontal: 20,
+    justifyContent: "center",
+  },
+  titleContainer: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  mainTitle: {
+    color: "white",
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  subtitle: {
+    color: "#6B7280",
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  inputContainer: {
+    backgroundColor: "#374151",
+    borderRadius: 12,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 18,
+  },
+  input: {
+    color: "white",
+    paddingVertical: 12,
+    fontSize: 16,
+    flex: 1,
+  },
+  errorText: {
+    color: "#F44336",
+    marginBottom: 8,
+    marginHorizontal: 18,
+  },
+  gradientButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginBottom: 16,
+    marginHorizontal: 18,
+  },
+  loginButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  registerText: {
+    color: "#6B7280",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  registerLink: {
+    color: "#EC4899",
+    fontWeight: "bold",
+  },
+  cancelButton: {
+    marginTop: 24,
+  },
+  cancelButtonText: {
+    textAlign: "center",
+    fontSize: 14,
+    color: "#4B5563",
+    textDecorationLine: "underline",
+  },
+});
