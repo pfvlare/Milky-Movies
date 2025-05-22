@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
     View,
     Text,
@@ -10,14 +10,40 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
+
 import { RootStackParamList } from "../Navigation/Navigation";
 import { theme } from "../theme";
-import { LinearGradient } from "expo-linear-gradient";
+import { useUserStore } from "../store/userStore";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Welcome">;
 
 export default function WelcomeScreen() {
     const navigation = useNavigation<NavigationProp>();
+    const setUser = useUserStore((state) => state.setUser);
+    const setCurrentProfile = useUserStore((state) => state.setCurrentProfile);
+
+    useEffect(() => {
+        const checkSession = async () => {
+            const stored = await AsyncStorage.getItem("@user");
+
+            if (!stored) return; // Usuário não logado → permanece na tela Welcome
+
+            const parsedUser = JSON.parse(stored);
+            if (!parsedUser?.id) return;
+
+            setUser(parsedUser);
+            if (parsedUser.currentProfileId) {
+                setCurrentProfile(parsedUser.currentProfileId);
+            }
+
+            // Redireciona direto para escolha de perfil
+            navigation.reset({ index: 0, routes: [{ name: "ChooseProfile" }] });
+        };
+
+        checkSession();
+    }, []);
 
     return (
         <SafeAreaView style={styles.container}>

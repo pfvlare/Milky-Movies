@@ -6,8 +6,10 @@ import {
   StyleSheet,
   Image,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/Navigation";
+import { useUserStore } from "../store/userStore";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Splash">;
 
@@ -36,10 +38,31 @@ const styles = StyleSheet.create({
 });
 
 export default function SplashScreen({ navigation }: Props) {
+  const setUser = useUserStore((state) => state.setUser);
+  const setCurrentProfile = useUserStore((state) => state.setCurrentProfile);
+
   useEffect(() => {
     const start = async () => {
       await new Promise((res) => setTimeout(res, 1500)); // Simula carregamento
-      navigation.replace("Welcome");
+
+      const stored = await AsyncStorage.getItem("@user");
+      if (!stored) {
+        navigation.replace("Welcome"); // Não logado
+        return;
+      }
+
+      const parsed = JSON.parse(stored);
+      if (!parsed?.id) {
+        navigation.replace("Welcome");
+        return;
+      }
+
+      setUser(parsed);
+      if (parsed.currentProfileId) {
+        setCurrentProfile(parsed.currentProfileId);
+      }
+
+      navigation.replace("ChooseProfile");
     };
 
     start();

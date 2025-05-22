@@ -65,10 +65,6 @@ export default function RegisterScreen({ navigation, route }: Props) {
         return;
       }
 
-      const now = new Date().toISOString();
-      const oneMonthLater = new Date();
-      oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-
       const simulatedUser = {
         id: "simulado-123",
         firstname: data.firstname,
@@ -76,10 +72,15 @@ export default function RegisterScreen({ navigation, route }: Props) {
         email: data.email,
         phone: data.phone,
         address: data.address,
-        isSubscribed: false,
+        currentProfileId: null,
+        profiles: [],
         subscription: {
           planName: selectedPlan.name,
           planPrice: selectedPlan.price,
+          maxProfiles: selectedPlan.maxProfiles,
+          isActive: true,
+          cardNumber: null,
+          expiry: null,
         },
       };
 
@@ -88,7 +89,10 @@ export default function RegisterScreen({ navigation, route }: Props) {
       await AsyncStorage.setItem("@isLoggedIn", "true");
 
       Toast.show({ type: "success", text1: "Modo offline: cadastro simulado!" });
-      navigation.replace("Subscription", { userId: "simulado-123" });
+
+      // 👉 redireciona para a tela de cartão
+      navigation.replace("Subscription", { userId: simulatedUser.id });
+
     } catch (error) {
       Toast.show({
         type: "error",
@@ -98,6 +102,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
       console.error("❌ Erro inesperado:", error);
     }
   };
+
 
   const fields = [
     { name: "firstname", placeholder: "Nome" },

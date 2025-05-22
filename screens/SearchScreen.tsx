@@ -18,6 +18,7 @@ import Loading from "../components/loading";
 import { fallBackMoviePoster, image185, searchMovies } from "../api/moviedb";
 import { debounce } from "lodash";
 import { Ionicons } from "@expo/vector-icons";
+import { useUserStore } from "../store/userStore"; // ✅ adicionado
 
 const { width, height } = Dimensions.get("window");
 
@@ -26,7 +27,9 @@ export default function SearchScreen() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = (value) => {
+  const currentProfileId = useUserStore((state) => state.user?.currentProfileId); // ✅ contexto de perfil
+
+  const handleSearch = (value: string) => {
     if (value && value.length > 2) {
       setLoading(true);
       searchMovies({
@@ -117,7 +120,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#111827",
     paddingTop: Platform.OS === "ios" ? 50 : 30,
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
   },
   backButton: {
     position: "absolute",
@@ -159,8 +162,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   movieItem: {
-    width: width * 0.44,
-    marginBottom: 16,
+    width: (width - 72) / 2,
+    marginBottom: 20,
   },
   moviePoster: {
     width: "100%",

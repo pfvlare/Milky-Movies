@@ -56,18 +56,31 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
 
       const stored = await AsyncStorage.getItem("@user");
       const parsed = stored ? JSON.parse(stored) : {};
-      const updated = { ...parsed, isSubscribed: true };
+
+      const updated = {
+        ...parsed,
+        isSubscribed: true,
+        subscription: {
+          ...parsed.subscription,
+          ...simulatedCard,
+          isActive: true,
+        },
+      };
 
       await AsyncStorage.setItem("@user", JSON.stringify(updated));
       await AsyncStorage.setItem("@isLoggedIn", "true");
 
       Alert.alert("Modo offline", "Assinatura simulada com sucesso.");
-      navigation.reset({ index: 0, routes: [{ name: "Home" }] });
+
+      // 👉 redireciona para escolher perfil
+      navigation.reset({ index: 0, routes: [{ name: "ChooseProfile" }] });
+
     } catch (e) {
       console.error("❌ Subscription error:", e);
       Alert.alert("Erro", "Não foi possível simular a assinatura.");
     }
   };
+
 
   const fields: {
     name: keyof SubscriptionType;

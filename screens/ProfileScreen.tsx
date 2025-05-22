@@ -33,6 +33,8 @@ export default function ProfileScreen() {
   const setUser = useUserStore((state) => state.setUser);
   const setSubscription = useUserStore((state) => state.setSubscription);
 
+  const currentProfile = user?.profiles?.find((p) => p.id === user.currentProfileId);
+
   useEffect(() => {
     if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -45,16 +47,17 @@ export default function ProfileScreen() {
           const parsedUser = JSON.parse(storedUser);
           if (parsedUser?.id) {
             setUser(parsedUser);
-            const card = await getCardByUserId(parsedUser.id);
-            if (!card || card.error) return;
 
-            setSubscription({
-              cardNumber: card.cardNumber,
-              expiry: formatExpiresCard(card),
-              planName: card.planName || "Padrão",
-              planPrice: card.planPrice || "R$ --",
-              isActive: card.isActive ?? true,
-            });
+            const card = await getCardByUserId(parsedUser.id);
+            if (card && !card.error) {
+              setSubscription({
+                cardNumber: card.cardNumber,
+                expiry: formatExpiresCard(card),
+                planName: card.planName || "Padrão",
+                planPrice: card.planPrice || "R$ --",
+                isActive: card.isActive ?? true,
+              });
+            }
 
             const pending = await AsyncStorage.getItem("@pendingChange");
             if (pending) {
@@ -99,11 +102,12 @@ export default function ProfileScreen() {
   };
 
   const getInitials = () => {
-    if (!user?.firstname) return "U";
-    return (
-      user.firstname.charAt(0).toUpperCase() +
-      (user.lastname ? user.lastname.charAt(0).toUpperCase() : "")
-    );
+    if (!currentProfile?.name) return "P";
+    return currentProfile.name
+      .split(" ")
+      .map((p) => p[0])
+      .join("")
+      .toUpperCase();
   };
 
   return (
@@ -120,14 +124,14 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.innerWrapper}>
           <View style={styles.header}>
-            <View style={styles.avatar}>
+            <View style={[styles.avatar, { backgroundColor: currentProfile?.color || "#EC4899" }]}>
               <Text style={styles.avatarText}>{getInitials()}</Text>
             </View>
             <Text style={styles.mainTitle}>
               <Text style={{ color: theme.text }}>M</Text>ilky{" "}
               <Text style={{ color: theme.text }}>M</Text>ovies
             </Text>
-            <Text style={styles.subtitle}>Perfil</Text>
+            <Text style={styles.subtitle}>Perfil: {currentProfile?.name}</Text>
           </View>
 
           {user?.id ? (
@@ -218,8 +222,8 @@ export default function ProfileScreen() {
                   onPress={() =>
                     navigation.navigate("ChangePlan", {
                       currentPlan: {
-                        name: subscription?.planName,
-                        price: subscription?.planPrice,
+                        name: subscription?.planName || "",
+                        price: subscription?.planPrice || "",
                       },
                     })
                   }
@@ -275,7 +279,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   avatar: {
-    backgroundColor: "#EC4899",
     width: 80,
     height: 80,
     borderRadius: 40,

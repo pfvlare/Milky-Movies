@@ -10,38 +10,39 @@ import {
   StyleSheet,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { fallBackMoviePoster, image185 } from "../api/moviedb";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { RootStackParamList } from "../Navigation/Navigation";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { theme } from "../theme";
+
+import { fallBackMoviePoster, image185 } from "../api/moviedb";
+import { useUserStore } from "../store/userStore";
 
 const { width, height } = Dimensions.get("window");
 
-type FavoritesScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  "Movie"
->;
-
 export default function FavoritesScreen() {
   const [favorites, setFavorites] = useState([]);
-  const navigation = useNavigation<FavoritesScreenNavigationProp>();
+  const navigation = useNavigation();
+
+  const profileId = useUserStore((state) => state.user?.currentProfileId);
 
   const loadFavorites = async () => {
-    const stored = await AsyncStorage.getItem("favorites");
-    if (stored) {
-      setFavorites(JSON.parse(stored));
-    } else {
-      setFavorites([]);
+    try {
+      const key = `favorites_${profileId}`;
+      const stored = await AsyncStorage.getItem(key);
+      if (stored) {
+        setFavorites(JSON.parse(stored));
+      } else {
+        setFavorites([]);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar favoritos:", err);
     }
   };
 
-  useFocusEffect(
-    React.useCallback(() => {
+  useEffect(() => {
+    if (profileId) {
       loadFavorites();
-    }, [])
-  );
+    }
+  }, [profileId]);
 
   const goToMovie = (movie) => {
     navigation.navigate("Movie", movie);
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   },
   movieItem: {
     marginBottom: 20,
-    width: (width - 72) / 2, // 24px padding on each side + gap
+    width: (width - 72) / 2,
   },
   moviePoster: {
     width: "100%",

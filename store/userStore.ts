@@ -8,6 +8,13 @@ interface Subscription {
     planName?: string;
     planPrice?: string;
     isActive?: boolean;
+    maxProfiles?: number;
+}
+
+interface Profile {
+    id: string;
+    name: string;
+    color: string; // ✅ Adicionado para suporte ao avatar colorido
 }
 
 interface User {
@@ -18,12 +25,15 @@ interface User {
     phone: string;
     address: string;
     subscription?: Subscription;
+    profiles: Profile[];
+    currentProfileId: string | null;
 }
 
 interface UserStore {
     user: User | null;
     setUser: (user: User) => void;
     setSubscription: (subscription: Subscription) => void;
+    setCurrentProfile: (profileId: string) => void;
     clearUser: () => void;
 }
 
@@ -44,6 +54,18 @@ export const useUserStore = create<UserStore>()(
                                     ...state.user.subscription,
                                     ...subscription,
                                 },
+                            },
+                        }
+                        : state
+                ),
+
+            setCurrentProfile: (profileId) =>
+                set((state) =>
+                    state.user
+                        ? {
+                            user: {
+                                ...state.user,
+                                currentProfileId: profileId,
                             },
                         }
                         : state

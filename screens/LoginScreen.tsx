@@ -11,11 +11,11 @@ import {
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 
 import AppLayout from "../components/AppLayout";
 import { loginUser } from "../api/services/user/login";
@@ -66,15 +66,6 @@ export default function LoginScreen() {
   return (
     <AppLayout>
       <SafeAreaView style={styles.container}>
-        <TouchableOpacity
-          style={{ position: "absolute", top: 50, left: 16, zIndex: 10 }}
-          onPress={() =>
-            navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Welcome")
-          }
-        >
-          <Ionicons name="arrow-back" size={24} color="#EC4899" />
-        </TouchableOpacity>
-
         <View style={styles.titleContainer}>
           <Text style={styles.mainTitle}>
             <Text style={{ color: "#EC4899" }}>M</Text>ilky{" "}

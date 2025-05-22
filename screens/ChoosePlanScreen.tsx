@@ -24,6 +24,7 @@ const plans = [
         price: "18.90",
         code: "basic",
         details: ["1 dispositivo por vez", "Qualidade SD (480p)", "Com anúncios"],
+        maxProfiles: 1,
     },
     {
         id: "intermediary",
@@ -31,6 +32,7 @@ const plans = [
         price: "39.90",
         code: "intermediary",
         details: ["2 dispositivos ao mesmo tempo", "Qualidade HD (720p)", "Sem anúncios"],
+        maxProfiles: 2,
     },
     {
         id: "complete",
@@ -38,6 +40,7 @@ const plans = [
         price: "55.90",
         code: "complete",
         details: ["4 dispositivos ao mesmo tempo", "Qualidade Ultra HD (4K)", "Sem anúncios"],
+        maxProfiles: 4,
     },
 ];
 
@@ -50,20 +53,21 @@ export default function ChoosePlanScreen() {
         navigation.navigate("Register", { selectedPlan });
     };
 
+
     return (
         <SafeAreaView style={styles.container}>
-            <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => {
-                    if (navigation.canGoBack()) navigation.goBack();
-                    else navigation.navigate("Splash");
-                }}
-            >
-                <Ionicons name="arrow-back" size={24} color="#EC4899" />
-            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => {
+                        if (navigation.canGoBack()) navigation.goBack();
+                        else navigation.navigate("Splash");
+                    }}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#EC4899" />
+                </TouchableOpacity>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.innerWrapper}>
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
                     <View style={styles.header}>
                         <Text style={styles.mainTitle}>
                             <Text style={{ color: theme.text }}>M</Text>ilky{" "}
@@ -88,22 +92,21 @@ export default function ChoosePlanScreen() {
                             ))}
                         </TouchableOpacity>
                     ))}
+                </ScrollView>
 
+                <View style={styles.footer}>
                     <LinearGradient
                         colors={["#EC4899", "#D946EF"]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={[
-                            styles.continueButton,
-                            !selectedPlan && { opacity: 0.5 },
-                        ]}
+                        style={[styles.continueButton, !selectedPlan && { opacity: 0.5 }]}
                     >
                         <TouchableOpacity onPress={handleContinue} disabled={!selectedPlan}>
                             <Text style={styles.buttonText}>Continuar</Text>
                         </TouchableOpacity>
                     </LinearGradient>
                 </View>
-            </ScrollView>
+            </View>
         </SafeAreaView>
     );
 }
@@ -116,16 +119,17 @@ const styles = StyleSheet.create({
     },
     backButton: {
         position: "absolute",
-        top: 50,
+        top: Platform.OS === "ios" ? 50 : 20,
         left: 16,
         zIndex: 10,
     },
-    innerWrapper: {
+    scroll: {
+        paddingTop: 80,
         paddingHorizontal: 24,
+        paddingBottom: 40,
     },
     header: {
         alignItems: "center",
-        marginTop: 40,
         marginBottom: 24,
     },
     mainTitle: {
@@ -133,6 +137,7 @@ const styles = StyleSheet.create({
         fontSize: 32,
         fontWeight: "bold",
         marginBottom: 4,
+        letterSpacing: 1,
     },
     subtitle: {
         color: "#6B7280",
@@ -167,17 +172,19 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginBottom: 2,
     },
+    footer: {
+        paddingHorizontal: 24,
+        paddingBottom: Platform.OS === "ios" ? 30 : 20,
+        backgroundColor: theme.background,
+    },
     continueButton: {
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: "center",
-        marginTop: 20,
-        marginBottom: 40,
     },
     buttonText: {
         color: "white",
         fontWeight: "bold",
         fontSize: 18,
-        textAlign: "center",
     },
 });

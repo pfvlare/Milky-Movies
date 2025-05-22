@@ -17,9 +17,11 @@ import ChoosePlanScreen from "../screens/ChoosePlanScreen";
 import ChangePlanScreen from "../screens/ChangePlanScreen";
 import ConfirmCardScreen from "../screens/ConfirmCardScreen";
 import PlayerScreen from "../screens/PlayerScreen";
-
-// ✅ Novo import:
 import MovieListScreen from "../screens/MovieListScreen";
+
+// ✅ Novas telas relacionadas a perfis
+import ChooseProfileScreen from "../screens/ChooseProfileScreen";
+import CreateProfilesScreen from "../screens/CreateProfilesScreen";
 
 import { RootStackParamList } from "./NavigationTypes";
 
@@ -29,15 +31,15 @@ type NavigationProps = {
   initialRoute?: keyof RootStackParamList;
 };
 
-const Navigation = ({ initialRoute = "Welcome" }: NavigationProps) => {
+const Navigation = ({ initialRoute = "Splash" }: NavigationProps) => {
   return (
     <NavigationContainer>
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
       >
-        <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Subscription" component={SubscriptionScreen} />
@@ -55,9 +57,11 @@ const Navigation = ({ initialRoute = "Welcome" }: NavigationProps) => {
           component={PlayerScreen}
           options={{ headerShown: true, title: "Assistindo..." }}
         />
-
-        {/* ✅ Adicionada a nova tela de listagem completa */}
         <Stack.Screen name="MovieListScreen" component={MovieListScreen} />
+
+        {/* ✅ Telas de perfis */}
+        <Stack.Screen name="ChooseProfile" component={ChooseProfileScreen} />
+        <Stack.Screen name="CreateProfiles" component={CreateProfilesScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

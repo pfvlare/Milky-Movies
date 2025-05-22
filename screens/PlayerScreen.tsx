@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
     View,
     StyleSheet,
@@ -6,14 +6,13 @@ import {
     TouchableOpacity,
     Text,
     StatusBar,
-} from 'react-native';
-import { WebView } from 'react-native-webview';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { theme } from '../theme';
+} from "react-native";
+import { WebView } from "react-native-webview";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 export default function PlayerScreen() {
     const navigation = useNavigation();
@@ -24,9 +23,9 @@ export default function PlayerScreen() {
         <View style={styles.container}>
             <StatusBar hidden />
 
-            {/* Top gradient header */}
+            {/* Top header com gradiente e botão voltar */}
             <LinearGradient
-                colors={['rgba(0,0,0,0.8)', 'transparent']}
+                colors={["rgba(0,0,0,0.8)", "transparent"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
                 style={styles.headerGradient}
@@ -37,7 +36,7 @@ export default function PlayerScreen() {
                 </TouchableOpacity>
             </LinearGradient>
 
-            {/* WebView player */}
+            {/* Vídeo WebView */}
             <WebView
                 source={{ uri: videoUrl }}
                 style={styles.video}
@@ -53,10 +52,10 @@ export default function PlayerScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'black',
+        backgroundColor: "black",
     },
     headerGradient: {
-        position: 'absolute',
+        position: "absolute",
         top: 0,
         left: 0,
         width,
@@ -66,14 +65,14 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     backButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
     },
     backText: {
-        color: 'white',
+        color: "white",
         marginLeft: 8,
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: "bold",
     },
     video: {
         width,

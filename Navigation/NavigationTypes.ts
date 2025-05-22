@@ -1,14 +1,8 @@
-export type Plan = {
-    id: string;
-    name: string;
-    price: string;
-};
-
 export type RootStackParamList = {
     Welcome: undefined;
     Splash: undefined;
     Login: undefined;
-    Register: { userToEdit?: any } | undefined; // Caso esteja usando para editar perfil
+    Register: { userToEdit?: any } | undefined;
     Subscription: { userId: string };
     Home: undefined;
     Movie: any;
@@ -27,10 +21,14 @@ export type RootStackParamList = {
     PlayerScreen: {
         videoUrl: string;
     };
-
-    // ✅ Adicionado para suportar o botão "Ver Mais"
     MovieListScreen: {
         title: string;
         data: any[];
+    };
+
+    // ✅ Telas de perfil
+    ChooseProfile: undefined;
+    CreateProfiles: {
+        maxProfiles: number;
     };
 };

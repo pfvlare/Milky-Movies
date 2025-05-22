@@ -23,10 +23,9 @@ import {
 import Toast from "react-native-toast-message";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/Navigation";
+import { useUserStore } from "../store/userStore";
 
 const theme = themeConfig.theme;
-
-const hiddenMenuRoutes = ["Login", "Register", "Splash", "Subscription"];
 
 const styles = StyleSheet.create({
   container: {
@@ -70,11 +69,15 @@ type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 export default function HomeScreen({ navigation, route }: Props) {
   const [showMenu, setShowMenu] = useState(false);
 
-  const shouldShowMenu = !hiddenMenuRoutes.includes(route.name);
+  const user = useUserStore((state) => state.user);
+  const currentProfileId = user?.currentProfileId;
 
   const { data: trendingMovies, isLoading, error } = useTrendingMovies();
   const { data: upcomingMovies } = useUpcomingMovies();
   const { data: topRatedMovies } = useTopRatedMovies();
+
+  const hiddenMenuRoutes = ["Login", "Register", "Splash", "Subscription"];
+  const shouldShowMenu = !hiddenMenuRoutes.includes(route.name);
 
   if (error) {
     Toast.show({
