@@ -12,15 +12,15 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  ChevronLeftIcon,
   HeartIcon as HeartOutlineIcon,
 } from "react-native-heroicons/outline";
 import { HeartIcon } from "react-native-heroicons/solid";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 
 import Cast from "../components/cast";
-import MovieList from "../components/movieList.tsx";
+import MovieList from "../components/movieList";
 import Loading from "../components/loading";
 import {
   fallBackMoviePoster,
@@ -29,9 +29,8 @@ import {
   fetchSimilarMovies,
   image500,
 } from "../api/moviedb";
-import * as themeConfig from "../theme";
+import { theme } from "../theme";
 
-const theme = themeConfig.theme;
 const { width, height } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
@@ -50,7 +49,7 @@ const styles = StyleSheet.create({
     }),
   },
   backButton: {
-    backgroundColor: "#374151",
+    backgroundColor: "#1F2937",
     borderRadius: 12,
     padding: 8,
   },
@@ -109,7 +108,7 @@ const styles = StyleSheet.create({
     textAlign: "justify",
   },
   watchButton: {
-    backgroundColor: "#ff006e",
+    backgroundColor: "#EC4899",
     marginTop: 16,
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -185,7 +184,6 @@ export default function MovieScreen() {
     }
   };
 
-  // Gera URL de busca no YouTube
   const getYouTubeSearchUrl = (title: string) => {
     return `https://www.youtube.com/results?search_query=${encodeURIComponent(
       title + " trailer"
@@ -203,7 +201,7 @@ export default function MovieScreen() {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <ChevronLeftIcon size={28} strokeWidth={2.5} color="white" />
+            <Ionicons name="arrow-back" size={24} color="#EC4899" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -211,7 +209,7 @@ export default function MovieScreen() {
             style={styles.favoriteButton}
           >
             {isFavourite ? (
-              <HeartIcon size={35} color={theme.background} />
+              <HeartIcon size={35} color="#EC4899" />
             ) : (
               <HeartOutlineIcon size={35} strokeWidth={2} color="white" />
             )}
@@ -281,6 +279,7 @@ export default function MovieScreen() {
           title="Filmes Semelhantes"
           hiddenSeeAll
           data={similarMovies}
+          navigation={navigation}
         />
       )}
     </ScrollView>

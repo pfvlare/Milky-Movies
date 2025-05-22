@@ -28,11 +28,12 @@ export default function WelcomeScreen() {
                 />
 
                 <Text style={styles.title}>
-                    Bem-vindo ao <Text style={styles.highlight}>Milky Movies</Text>
+                    Bem-vindo ao <Text style={{ color: theme.text }}>M</Text>ilky{" "}
+                    <Text style={{ color: theme.text }}>M</Text>ovies
                 </Text>
 
                 <Text style={styles.subtitle}>
-                    Descubra os melhores filmes e séries, sem anúncios e com acesso em
+                    Descubra os melhores filmes, sem anúncios e com acesso em
                     múltiplos dispositivos.
                 </Text>
 
@@ -83,9 +84,6 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         textAlign: "center",
         marginBottom: 12,
-    },
-    highlight: {
-        color: theme.text,
     },
     subtitle: {
         color: "#9CA3AF",

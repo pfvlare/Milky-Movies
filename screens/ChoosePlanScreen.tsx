@@ -69,7 +69,7 @@ export default function ChoosePlanScreen() {
                             <Text style={{ color: theme.text }}>M</Text>ilky{" "}
                             <Text style={{ color: theme.text }}>M</Text>ovies
                         </Text>
-                        <Text style={styles.subtitle}>Escolha seu plano</Text>
+                        <Text style={styles.subtitle}>Escolha Seu Plano</Text>
                     </View>
 
                     {plans.map((plan) => (

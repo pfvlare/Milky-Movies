@@ -69,18 +69,6 @@ export default function RegisterScreen({ navigation, route }: Props) {
       const oneMonthLater = new Date();
       oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
 
-      const payload = {
-        ...data,
-        subscription: {
-          plan: selectedPlan.code,
-          value: Number(selectedPlan.price),
-          registeredAt: now,
-          expiresAt: oneMonthLater.toISOString(),
-        },
-      };
-
-      console.log("📦 Dados simulados (sem API):", payload);
-
       const simulatedUser = {
         id: "simulado-123",
         firstname: data.firstname,
@@ -127,7 +115,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
             Nenhum plano foi selecionado. Por favor, volte e escolha um plano antes de continuar.
           </Text>
           <TouchableOpacity
-            style={[styles.registerButton, { marginTop: 24 }]}
+            style={[styles.gradientButton, { marginTop: 24 }]}
             onPress={() => navigation.replace("ChoosePlan")}
           >
             <Text style={styles.registerButtonText}>Voltar</Text>
@@ -139,6 +127,15 @@ export default function RegisterScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TouchableOpacity
+        style={{ position: "absolute", top: 50, left: 16, zIndex: 10 }}
+        onPress={() =>
+          navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Welcome")
+        }
+      >
+        <Ionicons name="arrow-back" size={24} color="#EC4899" />
+      </TouchableOpacity>
+
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.mainTitle}>

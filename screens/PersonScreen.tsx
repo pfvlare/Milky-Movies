@@ -10,8 +10,6 @@ import {
   StyleSheet,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { ChevronLeftIcon, HeartIcon as HeartOutlineIcon } from "react-native-heroicons/outline";
-import { HeartIcon } from "react-native-heroicons/solid";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import MovieList from "../components/movieList.tsx";
 import Loading from "../components/loading";
@@ -24,7 +22,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
-const ios = Platform.OS === "ios";
 
 const styles = StyleSheet.create({
   container: {
@@ -36,7 +33,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
     width: "100%",
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "center",
     paddingHorizontal: 16,
     ...Platform.select({
@@ -47,15 +44,6 @@ const styles = StyleSheet.create({
   backButton: {
     backgroundColor: "#374151",
     borderRadius: 12,
-    padding: 8,
-  },
-  favoriteButton: {
-    marginTop: 16,
-    marginRight: 16,
-  },
-  menuButton: {
-    marginTop: 16,
-    marginRight: 16,
     padding: 8,
   },
   profileImageContainer: {
@@ -136,11 +124,9 @@ const styles = StyleSheet.create({
 export default function PersonScreen() {
   const { params: item } = useRoute();
   const navigation = useNavigation();
-  const [isFavourite, toggleFavourite] = useState(false);
   const [personMovies, setPersonMovies] = useState([]);
   const [person, setPerson] = useState({});
   const [loading, setLoading] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -159,11 +145,6 @@ export default function PersonScreen() {
     if (data?.cast) setPersonMovies(data.cast);
   };
 
-  const handleMenu = () => {
-    setShowMenu(!showMenu);
-    console.log("Menu toggled!");
-  };
-
   return (
     <ScrollView
       style={styles.container}
@@ -174,25 +155,7 @@ export default function PersonScreen() {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <ChevronLeftIcon size={28} strokeWidth={2.5} color="white" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={handleMenu}
-          style={styles.menuButton}
-        >
-          <Ionicons name="menu-outline" size={30} color="white" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => toggleFavourite(!isFavourite)}
-          style={styles.favoriteButton}
-        >
-          {isFavourite ? (
-            <HeartIcon size={35} color="red" />
-          ) : (
-            <HeartOutlineIcon size={35} strokeWidth={2} color="white" />
-          )}
+          <Ionicons name="arrow-back" size={24} color="#EC4899" />
         </TouchableOpacity>
       </SafeAreaView>
 
@@ -228,26 +191,10 @@ export default function PersonScreen() {
               </Text>
             </View>
 
-            <View
-              style={{
-                borderRightWidth: 2,
-                borderRightColor: "#4B5563",
-                height: "80%",
-              }}
-            />
-
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Nascimento</Text>
               <Text style={styles.infoValue}>{person?.birthday || "N/A"}</Text>
             </View>
-
-            <View
-              style={{
-                borderRightWidth: 2,
-                borderRightColor: "#4B5563",
-                height: "80%",
-              }}
-            />
 
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Popularidade</Text>
@@ -273,8 +220,6 @@ export default function PersonScreen() {
           </View>
         </View>
       )}
-
-      {/* <MenuModal visible={showMenu} trigger={handleMenu} /> */}
     </ScrollView>
   );
 }

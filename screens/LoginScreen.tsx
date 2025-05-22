@@ -66,6 +66,15 @@ export default function LoginScreen() {
   return (
     <AppLayout>
       <SafeAreaView style={styles.container}>
+        <TouchableOpacity
+          style={{ position: "absolute", top: 50, left: 16, zIndex: 10 }}
+          onPress={() =>
+            navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Welcome")
+          }
+        >
+          <Ionicons name="arrow-back" size={24} color="#EC4899" />
+        </TouchableOpacity>
+
         <View style={styles.titleContainer}>
           <Text style={styles.mainTitle}>
             <Text style={{ color: "#EC4899" }}>M</Text>ilky{" "}

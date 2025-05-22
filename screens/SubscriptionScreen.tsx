@@ -16,6 +16,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Toast from "react-native-toast-message";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 
 import * as themeConfig from "../theme";
 import { SubscriptionSchema, SubscriptionType } from "../schemas/card";
@@ -81,66 +82,84 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <Text style={styles.mainTitle}>
-            <Text style={{ color: theme.text }}>M</Text>ilky <Text style={{ color: theme.text }}>M</Text>ovies
-          </Text>
-          <Text style={styles.subtitle}>Assinatura</Text>
-        </View>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => {
+          if (navigation.canGoBack()) navigation.goBack();
+          else navigation.navigate("Splash");
+        }}
+      >
+        <Ionicons name="arrow-back" size={24} color="#EC4899" />
+      </TouchableOpacity>
 
-        {fields.map((field) => (
-          <View key={field.name}>
-            <Controller
-              control={control}
-              name={field.name}
-              render={({ field: { onChange, value } }) => (
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    placeholder={field.placeholder}
-                    placeholderTextColor="#6B7280"
-                    style={styles.input}
-                    keyboardType={field.keyboardType}
-                    maxLength={field.maxLength}
-                    value={value}
-                    onChangeText={(text) => {
-                      if (field.name === "expiry") {
-                        const sanitized = text.replace(/[^0-9]/g, "");
-                        if (sanitized.length === 2 && !text.includes("/")) {
-                          onChange(`${sanitized}/`);
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContainer}
+      >
+        <View style={styles.innerWrapper}>
+          <View style={styles.header}>
+            <Text style={styles.mainTitle}>
+              <Text style={{ color: theme.text }}>M</Text>ilky{" "}
+              <Text style={{ color: theme.text }}>M</Text>ovies
+            </Text>
+            <Text style={styles.subtitle}>Assinatura</Text>
+          </View>
+
+          {fields.map((field) => (
+            <View key={field.name}>
+              <Controller
+                control={control}
+                name={field.name}
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      placeholder={field.placeholder}
+                      placeholderTextColor="#6B7280"
+                      style={styles.input}
+                      keyboardType={field.keyboardType}
+                      maxLength={field.maxLength}
+                      value={value}
+                      onChangeText={(text) => {
+                        if (field.name === "expiry") {
+                          const sanitized = text.replace(/[^0-9]/g, "");
+                          if (sanitized.length === 2 && !text.includes("/")) {
+                            onChange(`${sanitized}/`);
+                          } else {
+                            onChange(text);
+                          }
                         } else {
                           onChange(text);
                         }
-                      } else {
-                        onChange(text);
-                      }
-                    }}
-                  />
-                </View>
+                      }}
+                    />
+                  </View>
+                )}
+              />
+              {errors[field.name] && (
+                <Text style={styles.errorText}>
+                  {errors[field.name]?.message as string}
+                </Text>
               )}
-            />
-            {errors[field.name] && (
-              <Text style={styles.errorText}>{errors[field.name]?.message as string}</Text>
-            )}
-          </View>
-        ))}
+            </View>
+          ))}
 
-        <LinearGradient
-          colors={["#EC4899", "#D946EF"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientButton}
-        >
-          <TouchableOpacity onPress={handleSubmit(onSubmit)}>
-            <Text style={styles.subscribeButtonText}>Assinar</Text>
+          <LinearGradient
+            colors={["#EC4899", "#D946EF"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradientButton}
+          >
+            <TouchableOpacity onPress={handleSubmit(onSubmit)}>
+              <Text style={styles.subscribeButtonText}>Assinar</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.cancelText}>
+              Cancelar? <Text style={styles.cancelLink}>Voltar ao login</Text>
+            </Text>
           </TouchableOpacity>
-        </LinearGradient>
-
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.cancelText}>
-            Cancelar? <Text style={styles.cancelLink}>Voltar ao login</Text>
-          </Text>
-        </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -151,9 +170,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.background,
     paddingTop: Platform.OS === "ios" ? 50 : 30,
-    paddingHorizontal: 20,
+  },
+  backButton: {
+    position: "absolute",
+    top: 50,
+    left: 16,
+    zIndex: 10,
   },
   scrollContainer: {
+    flexGrow: 1,
+  },
+  innerWrapper: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
     flexGrow: 1,
     justifyContent: "center",
   },

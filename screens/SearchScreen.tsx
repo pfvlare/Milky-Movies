@@ -21,96 +21,12 @@ import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#111827",
-    paddingTop: Platform.OS === "ios" ? 50 : 30,
-    paddingHorizontal: 16,
-  },
-  searchBarContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#374151",
-    borderRadius: 24,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-  },
-  searchInput: {
-    flex: 1,
-    color: "white",
-    fontSize: 16,
-    paddingVertical: 10,
-    paddingLeft: 8,
-  },
-  clearButton: {
-    backgroundColor: "#EC4899",
-    borderRadius: 20,
-    padding: 8,
-    margin: 4,
-  },
-  resultsContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  resultsText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
-  movieGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-  },
-  movieItem: {
-    marginBottom: 16,
-    width: width * 0.44,
-  },
-  moviePoster: {
-    width: "100%",
-    height: height * 0.3,
-    borderRadius: 12,
-  },
-  movieTitle: {
-    color: "#D1D5DB",
-    fontSize: 14,
-    marginTop: 8,
-  },
-  noResultsContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: height * 0.2,
-  },
-  noResultsImage: {
-    width: width * 0.5,
-    height: height * 0.3,
-    opacity: 0.5,
-  },
-  noResultsText: {
-    color: "#6B7280",
-    fontSize: 16,
-    marginTop: 16,
-  },
-  menuButton: {
-    position: "absolute",
-    top: Platform.OS === "ios" ? 16 : 8,
-    right: 16,
-    zIndex: 10,
-    padding: 8,
-  },
-});
-
 export default function SearchScreen() {
   const navigation = useNavigation();
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
 
-  const handleSearch = (value: string) => {
+  const handleSearch = (value) => {
     if (value && value.length > 2) {
       setLoading(true);
       searchMovies({
@@ -130,15 +46,15 @@ export default function SearchScreen() {
 
   const handleTextDebounce = useCallback(debounce(handleSearch, 400), []);
 
-  const handleMenu = () => {
-    setShowMenu(!showMenu);
-    // Você pode ativar o MenuModal aqui, se desejar
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity onPress={handleMenu} style={styles.menuButton}>
-        <Ionicons name="menu-outline" size={30} color="white" />
+      <TouchableOpacity
+        onPress={() =>
+          navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+        }
+        style={styles.backButton}
+      >
+        <Ionicons name="arrow-back" size={24} color="#EC4899" />
       </TouchableOpacity>
 
       <View style={styles.searchBarContainer}>
@@ -148,10 +64,7 @@ export default function SearchScreen() {
           placeholderTextColor="#6B7280"
           style={styles.searchInput}
         />
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.clearButton}
-        >
+        <TouchableOpacity style={styles.clearButton} onPress={() => setResults([])}>
           <XMarkIcon size={24} color="white" />
         </TouchableOpacity>
       </View>
@@ -159,33 +72,26 @@ export default function SearchScreen() {
       {loading ? (
         <Loading />
       ) : results.length > 0 ? (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          style={styles.resultsContainer}
-        >
-          <Text style={styles.resultsText}>
-            Resultados ({results.length})
-          </Text>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Text style={styles.resultsText}>Resultados ({results.length})</Text>
           <View style={styles.movieGrid}>
             {results.map((item, index) => (
               <TouchableWithoutFeedback
-                key={index.toString()}
-                onPress={() =>
-                  navigation.navigate("Movie" as never, { id: item.id } as never)
-                }
+                key={index}
+                onPress={() => navigation.navigate("Movie", item)}
               >
                 <View style={styles.movieItem}>
                   <Image
-                    source={
-                      item.poster_path
-                        ? { uri: image185(item.poster_path) }
-                        : fallBackMoviePoster
-                    }
+                    source={{
+                      uri: item.poster_path
+                        ? image185(item.poster_path)
+                        : fallBackMoviePoster,
+                    }}
                     style={styles.moviePoster}
                   />
                   <Text style={styles.movieTitle}>
-                    {item.title?.length > 22
-                      ? item.title.slice(0, 22) + "..."
+                    {item.title?.length > 20
+                      ? item.title.slice(0, 20) + "..."
                       : item.title}
                   </Text>
                 </View>
@@ -202,8 +108,84 @@ export default function SearchScreen() {
           <Text style={styles.noResultsText}>Sem Resultados...</Text>
         </View>
       )}
-
-      {/* <MenuModal visible={showMenu} trigger={handleMenu} /> */}
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#111827",
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
+    paddingHorizontal: 16,
+  },
+  backButton: {
+    position: "absolute",
+    top: 50,
+    left: 16,
+    zIndex: 10,
+  },
+  searchBarContainer: {
+    flexDirection: "row",
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#374151",
+    paddingHorizontal: 12,
+    marginTop: 70,
+    alignItems: "center",
+    backgroundColor: "#1F2937",
+  },
+  searchInput: {
+    flex: 1,
+    color: "white",
+    fontSize: 16,
+    paddingVertical: 10,
+    paddingLeft: 8,
+  },
+  clearButton: {
+    backgroundColor: "#EC4899",
+    borderRadius: 20,
+    padding: 8,
+  },
+  resultsText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginVertical: 16,
+  },
+  movieGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  movieItem: {
+    width: width * 0.44,
+    marginBottom: 16,
+  },
+  moviePoster: {
+    width: "100%",
+    height: height * 0.3,
+    borderRadius: 12,
+  },
+  movieTitle: {
+    color: "white",
+    fontSize: 14,
+    marginTop: 8,
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 100,
+  },
+  noResultsImage: {
+    width: width * 0.5,
+    height: height * 0.3,
+    opacity: 0.5,
+  },
+  noResultsText: {
+    color: "#6B7280",
+    fontSize: 16,
+    marginTop: 16,
+  },
+});

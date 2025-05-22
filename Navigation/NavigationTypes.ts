@@ -8,8 +8,8 @@ export type RootStackParamList = {
     Welcome: undefined;
     Splash: undefined;
     Login: undefined;
-    Register: undefined;
-    Subscription: undefined;
+    Register: { userToEdit?: any } | undefined; // Caso esteja usando para editar perfil
+    Subscription: { userId: string };
     Home: undefined;
     Movie: any;
     Person: any;
@@ -17,7 +17,20 @@ export type RootStackParamList = {
     Favorites: undefined;
     Profile: undefined;
     ChoosePlan: undefined;
-    ChangePlan: undefined;
+    ChangePlan: {
+        currentPlan: {
+            name: string;
+            price: string;
+        };
+    };
     ConfirmCard: undefined;
-    PlayerScreen: { videoUrl: string };
+    PlayerScreen: {
+        videoUrl: string;
+    };
+
+    // ✅ Adicionado para suportar o botão "Ver Mais"
+    MovieListScreen: {
+        title: string;
+        data: any[];
+    };
 };

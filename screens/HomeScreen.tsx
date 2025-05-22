@@ -10,7 +10,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 
 import TrendingMovies from "../components/trendingMovies";
-import MovieList from "../components/movieList.tsx";
+import MovieList from "../components/movieList";
 import Loading from "../components/loading";
 import * as themeConfig from "../theme";
 import AppLayout from "../components/AppLayout";
@@ -21,9 +21,7 @@ import {
   useUpcomingMovies,
 } from "../hooks/useMovies";
 import Toast from "react-native-toast-message";
-import {
-  NativeStackScreenProps,
-} from "@react-navigation/native-stack";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/Navigation";
 
 const theme = themeConfig.theme;
@@ -87,20 +85,8 @@ export default function HomeScreen({ navigation, route }: Props) {
 
   const handleMenu = () => setShowMenu((prev) => !prev);
 
-  const fetchVideoUrl = async (movieId: number): Promise<string | null> => {
-    try {
-      const res = await fetch(
-        `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=55b68cfbb6e0be44a4a7bd493e1aeb66&language=pt-BR`
-      );
-      const data = await res.json();
-      const trailer = data.results.find(
-        (v: any) => v.site === "YouTube" && v.type === "Trailer"
-      );
-      return trailer ? `https://www.youtube.com/embed/${trailer.key}` : null;
-    } catch (error) {
-      console.error("Erro ao buscar vídeo:", error);
-      return null;
-    }
+  const handleSeeAll = (title: string, data: any[]) => {
+    navigation.navigate("MovieListScreen" as never, { title, data } as never);
   };
 
   return (
@@ -137,7 +123,12 @@ export default function HomeScreen({ navigation, route }: Props) {
         <StatusBar style="light" />
 
         {showMenu && shouldShowMenu && (
-          <MenuModal visible={showMenu} trigger={handleMenu} onClose={undefined} navigation={navigation} />
+          <MenuModal
+            visible={showMenu}
+            trigger={handleMenu}
+            onClose={undefined}
+            navigation={navigation}
+          />
         )}
 
         {isLoading ? (
@@ -148,24 +139,33 @@ export default function HomeScreen({ navigation, route }: Props) {
             contentContainerStyle={styles.scrollContainer}
           >
             {trendingMovies?.results?.length > 0 && (
-              <TrendingMovies data={trendingMovies.results} navigation={navigation} fetchVideoUrl={fetchVideoUrl} />
+              <TrendingMovies
+                data={trendingMovies.results}
+                navigation={navigation}
+              />
             )}
+
             {upcomingMovies?.results?.length > 0 && (
               <MovieList
                 title="Lançamentos"
                 data={upcomingMovies.results}
                 hiddenSeeAll={false}
                 navigation={navigation}
-                fetchVideoUrl={fetchVideoUrl}
+                onSeeAll={() =>
+                  handleSeeAll("Lançamentos", upcomingMovies.results)
+                }
               />
             )}
+
             {topRatedMovies?.results?.length > 0 && (
               <MovieList
                 title="Mais Assistidos"
                 data={topRatedMovies.results}
                 hiddenSeeAll={false}
                 navigation={navigation}
-                fetchVideoUrl={fetchVideoUrl}
+                onSeeAll={() =>
+                  handleSeeAll("Mais Assistidos", topRatedMovies.results)
+                }
               />
             )}
           </ScrollView>

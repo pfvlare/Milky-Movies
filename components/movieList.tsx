@@ -1,92 +1,37 @@
-import React from 'react';
+import React from "react";
 import {
     View,
     Text,
-    TouchableOpacity,
     ScrollView,
-    TouchableWithoutFeedback,
+    TouchableOpacity,
     Image,
     Dimensions,
     StyleSheet,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { fallBackMoviePoster, image185 } from '../api/moviedb';
-import { styles as themeStyles } from '../theme';
+    TouchableWithoutFeedback,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { fallBackMoviePoster, image185 } from "../api/moviedb";
 
-const { width, height } = Dimensions.get('window');
-
-const styles = StyleSheet.create({
-    container: {
-        marginBottom: 24,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginHorizontal: 16,
-        alignItems: 'center',
-    },
-    title: {
-        color: 'white',
-        fontSize: 18,
-    },
-    seeAll: {
-        fontSize: 16,
-    },
-    scrollContent: {
-        paddingHorizontal: 15,
-        paddingTop: 15,
-    },
-    movieItem: {
-        marginRight: 16,
-        alignItems: 'flex-start',
-        width: width * 0.33,
-    },
-    moviePoster: {
-        borderRadius: 24,
-        width: '100%',
-        height: height * 0.22,
-    },
-    movieTitle: {
-        color: '#D1D5DB',
-        fontSize: 14,
-        marginTop: 8,
-        marginLeft: 4,
-    },
-    watchButton: {
-        marginTop: 4,
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        backgroundColor: '#ff006e',
-        borderRadius: 6,
-        alignSelf: 'flex-start',
-        marginLeft: 4,
-    },
-    watchText: {
-        color: 'white',
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-});
+const { width, height } = Dimensions.get("window");
 
 type Props = {
     title: string;
     data: any[];
     hiddenSeeAll?: boolean;
+    navigation?: any;
+    onSeeAll?: () => void;
 };
 
-export default function MovieList({ title, data, hiddenSeeAll }: Props) {
-    const navigation = useNavigation();
-
-    const getYouTubeSearchUrl = (title: string) =>
-        `https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' trailer')}`;
+export default function MovieList({ title, data, hiddenSeeAll, navigation, onSeeAll }: Props) {
+    if (!data || !Array.isArray(data) || data.length === 0) return null;
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>{title}</Text>
                 {!hiddenSeeAll && (
-                    <TouchableOpacity>
-                        <Text style={[themeStyles.text, styles.seeAll]}>Ver Mais</Text>
+                    <TouchableOpacity onPress={onSeeAll}>
+                        <Text style={styles.seeAll}>Ver Mais</Text>
                     </TouchableOpacity>
                 )}
             </View>
@@ -97,35 +42,71 @@ export default function MovieList({ title, data, hiddenSeeAll }: Props) {
                 contentContainerStyle={styles.scrollContent}
             >
                 {data.map((item, index) => (
-                    <View key={index} style={styles.movieItem}>
-                        <TouchableWithoutFeedback onPress={() => navigation.navigate('Movie', item)}>
+                    <TouchableWithoutFeedback
+                        key={index}
+                        onPress={() => navigation?.navigate("Movie", item)}
+                    >
+                        <View style={styles.movieItem}>
                             <Image
-                                source={
-                                    item.poster_path
-                                        ? { uri: image185(item.poster_path) }
-                                        : fallBackMoviePoster
-                                }
+                                source={{
+                                    uri: item.poster_path
+                                        ? image185(item.poster_path)
+                                        : fallBackMoviePoster,
+                                }}
                                 style={styles.moviePoster}
                             />
-                        </TouchableWithoutFeedback>
-
-                        <Text style={styles.movieTitle}>
-                            {item.title.length > 14 ? item.title.slice(0, 14) + '...' : item.title}
-                        </Text>
-
-                        <TouchableOpacity
-                            style={styles.watchButton}
-                            onPress={() =>
-                                navigation.navigate('PlayerScreen', {
-                                    videoUrl: getYouTubeSearchUrl(item.title),
-                                })
-                            }
-                        >
-                            <Text style={styles.watchText}>▶ Assistir</Text>
-                        </TouchableOpacity>
-                    </View>
+                            <Text style={styles.movieTitle}>
+                                {item.title?.length > 14
+                                    ? item.title.slice(0, 14) + "..."
+                                    : item.title}
+                            </Text>
+                        </View>
+                    </TouchableWithoutFeedback>
                 ))}
             </ScrollView>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        marginBottom: 24,
+    },
+    header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginHorizontal: 16,
+        alignItems: "center",
+    },
+    title: {
+        color: "white",
+        fontSize: 18,
+        fontWeight: "bold", // <- garante negrito
+    },
+    seeAll: {
+        fontSize: 16,
+        color: "#EC4899",
+        fontWeight: "600",
+    },
+    scrollContent: {
+        paddingHorizontal: 15,
+        paddingTop: 15,
+    },
+    movieItem: {
+        marginRight: 16,
+        alignItems: "flex-start",
+        width: width * 0.33,
+    },
+    moviePoster: {
+        borderRadius: 24,
+        width: "100%",
+        height: height * 0.22,
+        backgroundColor: "#1F2937",
+    },
+    movieTitle: {
+        color: "#D1D5DB",
+        fontSize: 14,
+        marginTop: 8,
+        marginLeft: 4,
+    },
+});
