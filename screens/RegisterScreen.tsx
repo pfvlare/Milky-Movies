@@ -21,6 +21,8 @@ import * as themeConfig from "../theme";
 import { RegisterSchema, RegisterType } from "../schemas/register";
 import { RootStackParamList } from "../Navigation/Navigation";
 import { useUserStore } from "../store/userStore";
+import { AxiosError } from "axios";
+import { useRegister } from "../hooks/useAuth";
 
 const theme = themeConfig.theme;
 
@@ -54,6 +56,8 @@ export default function RegisterScreen({ navigation, route }: Props) {
     },
   });
 
+  const { mutateAsync, isPending } = useRegister();
+
   const onSubmit = async (data: RegisterType) => {
     try {
       if (userToEdit) {
@@ -65,44 +69,27 @@ export default function RegisterScreen({ navigation, route }: Props) {
         return;
       }
 
-      const simulatedUser = {
-        id: "simulado-123",
-        firstname: data.firstname,
-        lastname: data.lastname,
-        email: data.email,
-        phone: data.phone,
-        address: data.address,
-        currentProfileId: null,
-        profiles: [],
-        subscription: {
-          planName: selectedPlan.name,
-          planPrice: selectedPlan.price,
-          maxProfiles: selectedPlan.maxProfiles,
-          isActive: true,
-          cardNumber: null,
-          expiry: null,
-        },
-      };
+      const { data: user } = await mutateAsync(data);
 
-      setUser(simulatedUser);
-      await AsyncStorage.setItem("@user", JSON.stringify(simulatedUser));
-      await AsyncStorage.setItem("@isLoggedIn", "true");
+      setUser(user);
 
-      Toast.show({ type: "success", text1: "Modo offline: cadastro simulado!" });
+      Toast.show({ type: "success", text1: "Usuário registrado com sucesso!" });
 
-      // 👉 redireciona para a tela de cartão
-      navigation.replace("Subscription", { userId: simulatedUser.id });
+      navigation.replace("Subscription", { userId: user.id });
 
-    } catch (error) {
+    } catch (error: unknown) {
+      const err = error as AxiosError<{ message: string }>;
+      const message = err.response?.data?.message || "Erro inesperado";
+
       Toast.show({
         type: "error",
-        text1: "Erro inesperado",
-        text2: "Algo deu errado mesmo offline",
+        text1: "Erro ao registrar",
+        text2: Array.isArray(message) ? message[0] : message,
       });
-      console.error("❌ Erro inesperado:", error);
+
+      console.error("❌ Erro no registro:", error);
     }
   };
-
 
   const fields = [
     { name: "firstname", placeholder: "Nome" },

@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,16 +19,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
 import AppLayout from "../components/AppLayout";
-import { loginUser } from "../api/services/user/login";
+import { useLogin } from "../hooks/useAuth";
 import { LoginType, LoginSchema } from "../schemas/login";
 import { useUserStore } from "../store/userStore";
 import { RootStackParamList } from "../Navigation/Navigation";
 import { theme } from "../theme";
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
-
 export default function LoginScreen() {
-  const navigation = useNavigation<NavigationProp>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Login">>();
   const {
     control,
     handleSubmit,
@@ -36,13 +35,12 @@ export default function LoginScreen() {
 
   const [showPassword, setShowPassword] = useState(false);
   const setUser = useUserStore((state) => state.setUser);
+  const login = useLogin();
 
   const onSubmit = async (data: LoginType) => {
     try {
-      const user = await loginUser({
-        email: data.email,
-        password: data.password,
-      });
+      const response = await login.mutateAsync(data);
+      const user = response.data;
 
       if (user?.id) {
         setUser(user);
@@ -74,82 +72,88 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>Login</Text>
         </View>
 
-        {/* Email */}
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, value } }) => (
-            <View style={styles.inputContainer}>
-              <TextInput
-                placeholder="Email"
-                placeholderTextColor="#6B7280"
-                style={styles.input}
-                onChangeText={onChange}
-                value={value}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-            </View>
-          )}
-        />
-        {errors.email && (
-          <Text style={styles.errorText}>{errors.email.message}</Text>
-        )}
+        {login.isPending ? (
+          <ActivityIndicator size="large" color="#EC4899" style={{ marginTop: 50 }} />
+        ) : (
+          <>
+            {/* Email */}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, value } }) => (
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    placeholder="Email"
+                    placeholderTextColor="#6B7280"
+                    style={styles.input}
+                    onChangeText={onChange}
+                    value={value}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                </View>
+              )}
+            />
+            {errors.email && (
+              <Text style={styles.errorText}>{errors.email.message}</Text>
+            )}
 
-        {/* Senha */}
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, value } }) => (
-            <View style={styles.inputContainer}>
-              <TextInput
-                placeholder="Senha (6 dígitos)"
-                placeholderTextColor="#6B7280"
-                secureTextEntry={!showPassword}
-                style={styles.input}
-                onChangeText={onChange}
-                value={value}
-                maxLength={6}
-                keyboardType="numeric"
-              />
-              <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
-                <Ionicons
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={22}
-                  color="#9CA3AF"
-                />
+            {/* Senha */}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, value } }) => (
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    placeholder="Senha (6 dígitos)"
+                    placeholderTextColor="#6B7280"
+                    secureTextEntry={!showPassword}
+                    style={styles.input}
+                    onChangeText={onChange}
+                    value={value}
+                    maxLength={6}
+                    keyboardType="numeric"
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
+                    <Ionicons
+                      name={showPassword ? "eye-off" : "eye"}
+                      size={22}
+                      color="#9CA3AF"
+                    />
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+            {errors.password && (
+              <Text style={styles.errorText}>{errors.password.message}</Text>
+            )}
+
+            {/* Botão Entrar com degradê */}
+            <LinearGradient
+              colors={["#EC4899", "#D946EF"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientButton}
+            >
+              <TouchableOpacity onPress={handleSubmit(onSubmit)}>
+                <Text style={styles.loginButtonText}>Entrar</Text>
               </TouchableOpacity>
-            </View>
-          )}
-        />
-        {errors.password && (
-          <Text style={styles.errorText}>{errors.password.message}</Text>
+            </LinearGradient>
+
+            <TouchableOpacity onPress={() => navigation.replace("ChoosePlan")}>
+              <Text style={styles.registerText}>
+                Não tem conta? <Text style={styles.registerLink}>Cadastre-se</Text>
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => navigation.replace("Splash")}
+              style={styles.cancelButton}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar e voltar</Text>
+            </TouchableOpacity>
+          </>
         )}
-
-        {/* Botão Entrar com degradê */}
-        <LinearGradient
-          colors={["#EC4899", "#D946EF"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientButton}
-        >
-          <TouchableOpacity onPress={handleSubmit(onSubmit)}>
-            <Text style={styles.loginButtonText}>Entrar</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-
-        <TouchableOpacity onPress={() => navigation.replace("ChoosePlan")}>
-          <Text style={styles.registerText}>
-            Não tem conta? <Text style={styles.registerLink}>Cadastre-se</Text>
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => navigation.replace("Splash")}
-          style={styles.cancelButton}
-        >
-          <Text style={styles.cancelButtonText}>Cancelar e voltar</Text>
-        </TouchableOpacity>
       </SafeAreaView>
     </AppLayout>
   );

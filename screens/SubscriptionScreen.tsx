@@ -23,15 +23,20 @@ import { SubscriptionSchema, SubscriptionType } from "../schemas/card";
 import { RootStackParamList } from "../Navigation/NavigationTypes";
 import { useUserStore } from "../store/userStore";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useCreateCard } from "../hooks/useCards";
+import { useFindById } from "../hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 
 const theme = themeConfig.theme;
 
 type Props = NativeStackScreenProps<RootStackParamList, "Subscription">;
 
 export default function SubscriptionScreen({ navigation, route }: Props) {
-  const { userId } = route.params;
-
+  const queryClient = useQueryClient();
+  const createCard = useCreateCard();
   const setSubscription = useUserStore((state) => state.setSubscription);
+
+  const { userId } = route.params;
 
   const {
     control,
@@ -43,44 +48,49 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
 
   const onSubmit = async (data: SubscriptionType) => {
     try {
-      const [month, year] = data.expiry.split("/");
-      const expiryDate = new Date(Number(`20${year}`), Number(month) - 1);
+      const { data: user, isSuccess } = useFindById(userId);
 
-      const simulatedCard = {
+      const [month, year] = data.expiry.split("/");
+      const expiresDate = new Date(Number(`20${year}`), Number(month) - 1);
+
+      const payload = {
+        nameCard: `${user?.firstname} ${user?.lastname}`,
         cardNumber: data.cardNumber,
-        expiry: data.expiry,
-        isActive: true,
+        securityCode: data.cvv,
+        expiresDate: expiresDate.toISOString(),
+        userId: userId,
       };
 
-      setSubscription(simulatedCard);
-
-      const stored = await AsyncStorage.getItem("@user");
-      const parsed = stored ? JSON.parse(stored) : {};
+      await createCard.mutateAsync(payload);
 
       const updated = {
-        ...parsed,
+        ...user,
         isSubscribed: true,
         subscription: {
-          ...parsed.subscription,
-          ...simulatedCard,
+          planName: user.subscription?.plan,
+          planPrice: user.subscription?.value || 0,
+          cardNumber: data.cardNumber,
+          expiry: data.expiry,
           isActive: true,
         },
       };
 
-      await AsyncStorage.setItem("@user", JSON.stringify(updated));
-      await AsyncStorage.setItem("@isLoggedIn", "true");
+      if (isSuccess) {
+        setSubscription(updated.subscription);
+        Toast.show({ type: "success", text1: "Cartão registrado com sucesso!" });
+        queryClient.invalidateQueries({ queryKey: ['user'] });
+        navigation.reset({ index: 0, routes: [{ name: "ChooseProfile" }] });
+      }
 
-      Alert.alert("Modo offline", "Assinatura simulada com sucesso.");
-
-      // 👉 redireciona para escolher perfil
-      navigation.reset({ index: 0, routes: [{ name: "ChooseProfile" }] });
-
-    } catch (e) {
+    } catch (e: any) {
       console.error("❌ Subscription error:", e);
-      Alert.alert("Erro", "Não foi possível simular a assinatura.");
+      Toast.show({
+        type: "error",
+        text1: "Erro ao registrar cartão",
+        text2: e?.response?.data?.message || "Verifique os dados preenchidos.",
+      });
     }
   };
-
 
   const fields: {
     name: keyof SubscriptionType;

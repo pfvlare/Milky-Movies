@@ -6,7 +6,7 @@ interface Subscription {
     cardNumber?: string;
     expiry?: string;
     planName?: string;
-    planPrice?: string;
+    planPrice?: number;
     isActive?: boolean;
     maxProfiles?: number;
 }
@@ -14,7 +14,7 @@ interface Subscription {
 interface Profile {
     id: string;
     name: string;
-    color: string; // ✅ Adicionado para suporte ao avatar colorido
+    color: string;
 }
 
 interface User {
@@ -32,8 +32,8 @@ interface User {
 interface UserStore {
     user: User | null;
     setUser: (user: User) => void;
-    setSubscription: (subscription: Subscription) => void;
-    setCurrentProfile: (profileId: string) => void;
+    setSubscription: (subscription: Partial<Subscription>) => void;
+    setCurrentProfile: (profileId: string | null) => void;
     clearUser: () => void;
 }
 
@@ -76,6 +76,7 @@ export const useUserStore = create<UserStore>()(
         {
             name: "milky-user-store",
             storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state) => ({ user: state.user }),
         }
     )
 );

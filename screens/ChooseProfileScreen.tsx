@@ -7,22 +7,44 @@ import {
     TextInput,
     Modal,
     Platform,
-    ScrollView,
     SafeAreaView,
 } from "react-native";
+import Carousel from "react-native-reanimated-carousel";
 import { useNavigation } from "@react-navigation/native";
 import { useUserStore } from "../store/userStore";
 import { Ionicons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
+import {
+    useCreateProfile,
+    useEditProfile,
+    useDeleteProfile,
+    useProfiles,
+} from "../hooks/useProfiles";
 
-const profileColors = [
-    "#EC4899", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EF4444"
-];
+const profileColors = ["#EC4899", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EF4444"];
 
 export default function ChooseProfileScreen() {
     const navigation = useNavigation();
     const user = useUserStore((state) => state.user);
-    const setUser = useUserStore((state) => state.setUser);
     const setCurrentProfile = useUserStore((state) => state.setCurrentProfile);
+
+    const {
+        mutateAsync: createProfile,
+        isPending: isCreating,
+    } = useCreateProfile();
+    const {
+        mutateAsync: editProfile,
+        isPending: isEditing,
+    } = useEditProfile();
+    const {
+        mutateAsync: deleteProfile,
+        isPending: isDeleting,
+    } = useDeleteProfile(user.id);
+    const {
+        data: profiles = [],
+        refetch,
+        isFetching,
+    } = useProfiles(user.id);
 
     const [editMode, setEditMode] = useState(false);
     const [showModal, setShowModal] = useState(false);
@@ -30,53 +52,60 @@ export default function ChooseProfileScreen() {
     const [selectedColor, setSelectedColor] = useState(profileColors[0]);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-    const profiles = user?.profiles || [];
     const maxProfiles = user?.subscription?.maxProfiles || 1;
-
     const usedColors = profiles.map((p) => p.color);
     const availableColors = profileColors.filter((c) => !usedColors.includes(c));
 
     const handleSelectProfile = (id: string) => {
         if (editMode) return;
         setCurrentProfile(id);
-        navigation.reset({ index: 0, routes: [{ name: "Home" }] });
+        navigation.reset({ index: 0, routes: [{ name: "Home" as never }] });
     };
 
-    const handleAddProfile = () => {
+    const handleAddProfile = async () => {
         if (!newName.trim() || !selectedColor) return;
-        const newProfile = {
-            id: `${user?.id}-p${Date.now()}`,
-            name: newName.trim(),
-            color: selectedColor,
-        };
-        const updated = [...profiles, newProfile];
-        setUser({ ...user, profiles: updated });
+        try {
+            await createProfile({ name: newName.trim(), color: selectedColor, userId: user.id });
+            Toast.show({ type: "success", text1: "Perfil criado com sucesso!" });
+        } catch {
+            Toast.show({ type: "error", text1: "Erro ao criar perfil" });
+        }
         setShowModal(false);
         setNewName("");
         setSelectedColor(profileColors[0]);
+        await refetch();
     };
 
-    const handleEditProfile = () => {
+    const handleEditProfile = async () => {
         if (editingIndex === null) return;
-        const updated = [...profiles];
-        updated[editingIndex].name = newName.trim();
-        updated[editingIndex].color = selectedColor;
-        setUser({ ...user, profiles: updated });
+        const profile = profiles[editingIndex];
+        try {
+            await editProfile({ id: profile.id, name: newName.trim(), color: selectedColor, userId: user.id });
+            Toast.show({ type: "success", text1: "Perfil atualizado!" });
+        } catch {
+            Toast.show({ type: "error", text1: "Erro ao editar perfil" });
+        }
         setShowModal(false);
         setNewName("");
         setEditingIndex(null);
+        await refetch();
     };
 
-    const handleDelete = (index: number) => {
+    const handleDelete = async (index: number) => {
         if (profiles.length === 1) {
             alert("Você precisa manter pelo menos 1 perfil.");
             return;
         }
-        const updated = [...profiles];
-        updated.splice(index, 1);
-        const newActive = updated[0]?.id || null;
-        setUser({ ...user, profiles: updated, currentProfileId: newActive });
+        const profileId = profiles[index].id;
+        try {
+            await deleteProfile(profileId);
+            Toast.show({ type: "success", text1: "Perfil excluído!" });
+        } catch {
+            Toast.show({ type: "error", text1: "Erro ao excluir perfil" });
+        }
+        const newActive = profiles.filter((_, i) => i !== index)[0]?.id || null;
         setCurrentProfile(newActive);
+        await refetch();
     };
 
     const openEditModal = (index: number) => {
@@ -89,29 +118,30 @@ export default function ChooseProfileScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scroll}>
-                <Text style={styles.title}>Quem Está Assistindo?</Text>
+            <Text style={styles.title}>Quem Está Assistindo?</Text>
 
-                <View style={styles.profileList}>
-                    {profiles.map((profile, index) => {
-                        const initials = profile.name
-                            .split(" ")
-                            .map((part) => part[0])
-                            .join("")
-                            .toUpperCase();
-
+            <View style={{ height: 240 }}>
+                <Carousel
+                    width={140}
+                    height={160}
+                    loop={false}
+                    autoPlay={false}
+                    data={profiles}
+                    scrollAnimationDuration={400}
+                    renderItem={({ index }) => {
+                        const profile = profiles[index];
+                        const initials = profile.name.split(" ").map(p => p[0]).join("").toUpperCase();
                         return (
                             <View key={profile.id} style={styles.profileItem}>
                                 <TouchableOpacity
                                     onPress={() => handleSelectProfile(profile.id)}
                                     style={styles.profileTouchable}
                                 >
-                                    <View style={[styles.avatar, { backgroundColor: profile.color }]}>
+                                    <View style={[styles.avatar, { backgroundColor: profile.color }]}>\
                                         <Text style={styles.avatarText}>{initials}</Text>
                                     </View>
                                     <Text style={styles.profileName}>{profile.name}</Text>
                                 </TouchableOpacity>
-
                                 {editMode && (
                                     <View style={styles.iconsRow}>
                                         <TouchableOpacity onPress={() => openEditModal(index)}>
@@ -131,77 +161,80 @@ export default function ChooseProfileScreen() {
                                 )}
                             </View>
                         );
-                    })}
+                    }}
+                />
+            </View>
 
-                    {!editMode && profiles.length < maxProfiles && (
-                        <TouchableOpacity style={styles.addItem} onPress={() => {
-                            setEditingIndex(null);
-                            setNewName("");
-                            setSelectedColor(availableColors[0] || profileColors[0]);
-                            setShowModal(true);
-                        }}>
-                            <View style={[styles.avatar, styles.addAvatar]}>
-                                <Ionicons name="add" size={32} color="white" />
-                            </View>
-                            <Text style={styles.profileName}>Adicionar</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
-
+            {!editMode && profiles.length < maxProfiles && (
                 <TouchableOpacity
-                    onPress={() => setEditMode((prev) => !prev)}
                     style={styles.editToggle}
+                    onPress={() => {
+                        setEditingIndex(null);
+                        setNewName("");
+                        setSelectedColor(availableColors[0] || profileColors[0]);
+                        setShowModal(true);
+                    }}
                 >
-                    <Text style={styles.editText}>{editMode ? "Concluir" : "Editar"}</Text>
+                    <Text style={styles.editText}>Adicionar Perfil</Text>
                 </TouchableOpacity>
+            )}
 
-                {/* Modal */}
-                <Modal visible={showModal} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>
-                                {editingIndex !== null ? "Editar Perfil" : "Novo Perfil"}
-                            </Text>
+            <TouchableOpacity
+                onPress={() => setEditMode(prev => !prev)}
+                style={styles.editToggle}
+            >
+                <Text style={styles.editText}>{editMode ? "Concluir" : "Editar"}</Text>
+            </TouchableOpacity>
 
-                            <TextInput
-                                placeholder="Nome do perfil"
-                                placeholderTextColor="#9CA3AF"
-                                value={newName}
-                                onChangeText={setNewName}
-                                style={styles.input}
-                            />
+            <Modal visible={showModal} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>
+                            {editingIndex !== null ? "Editar Perfil" : "Novo Perfil"}
+                        </Text>
 
-                            <Text style={styles.modalSubtitle}>Cor do perfil:</Text>
-                            <View style={styles.colorPicker}>
-                                {[...new Set([...availableColors, selectedColor])].map((color, index) => (
-                                    <TouchableOpacity
-                                        key={`${color}-${index}`}
-                                        style={[
-                                            styles.colorOption,
-                                            { backgroundColor: color },
-                                            selectedColor === color && styles.selectedColor,
-                                        ]}
-                                        onPress={() => setSelectedColor(color)}
-                                    />
-                                ))}
-                            </View>
+                        <TextInput
+                            placeholder="Nome do perfil"
+                            placeholderTextColor="#9CA3AF"
+                            value={newName}
+                            onChangeText={setNewName}
+                            style={styles.input}
+                        />
 
-                            <View style={styles.modalActions}>
-                                <TouchableOpacity onPress={() => {
+                        <Text style={styles.modalSubtitle}>Cor do perfil:</Text>
+                        <View style={styles.colorPicker}>
+                            {[...new Set([...availableColors, selectedColor])].map((color, index) => (
+                                <TouchableOpacity
+                                    key={`${color}-${index}`}
+                                    style={[
+                                        styles.colorOption,
+                                        { backgroundColor: color },
+                                        selectedColor === color && styles.selectedColor,
+                                    ]}
+                                    onPress={() => setSelectedColor(color)}
+                                />
+                            ))}
+                        </View>
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                onPress={() => {
                                     setShowModal(false);
                                     setNewName("");
                                     setEditingIndex(null);
-                                }}>
-                                    <Text style={styles.cancelText}>Cancelar</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={editingIndex !== null ? handleEditProfile : handleAddProfile}>
-                                    <Text style={styles.confirmText}>Salvar</Text>
-                                </TouchableOpacity>
-                            </View>
+                                }}
+                            >
+                                <Text style={styles.cancelText}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={editingIndex !== null ? handleEditProfile : handleAddProfile}
+                            >
+                                <Text style={styles.confirmText}>Salvar</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
-                </Modal>
-            </ScrollView>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }

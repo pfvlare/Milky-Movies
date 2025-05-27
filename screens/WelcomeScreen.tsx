@@ -24,26 +24,26 @@ export default function WelcomeScreen() {
     const setUser = useUserStore((state) => state.setUser);
     const setCurrentProfile = useUserStore((state) => state.setCurrentProfile);
 
-    useEffect(() => {
-        const checkSession = async () => {
-            const stored = await AsyncStorage.getItem("@user");
+    // useEffect(() => {
+    //     const checkSession = async () => {
+    //         const stored = await AsyncStorage.getItem("@user");
 
-            if (!stored) return; // Usuário não logado → permanece na tela Welcome
+    //         if (!stored) return; // Usuário não logado → permanece na tela Welcome
 
-            const parsedUser = JSON.parse(stored);
-            if (!parsedUser?.id) return;
+    //         const parsedUser = JSON.parse(stored);
+    //         if (!parsedUser?.id) return;
 
-            setUser(parsedUser);
-            if (parsedUser.currentProfileId) {
-                setCurrentProfile(parsedUser.currentProfileId);
-            }
+    //         setUser(parsedUser);
+    //         if (parsedUser.currentProfileId) {
+    //             setCurrentProfile(parsedUser.currentProfileId);
+    //         }
 
-            // Redireciona direto para escolha de perfil
-            navigation.reset({ index: 0, routes: [{ name: "ChooseProfile" }] });
-        };
+    //         // Redireciona direto para escolha de perfil
+    //         navigation.reset({ index: 0, routes: [{ name: "ChooseProfile" }] });
+    //     };
 
-        checkSession();
-    }, []);
+    //     checkSession();
+    // }, []);
 
     return (
         <SafeAreaView style={styles.container}>

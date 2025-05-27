@@ -14,13 +14,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "../Navigation/NavigationTypes";
 import { useUserStore } from "../store/userStore";
-
-type MenuModalProps = {
-  visible: boolean;
-  onClose?: () => void;
-  trigger?: () => void;
-  navigation: NavigationProp<RootStackParamList>;
-};
+import Toast from "react-native-toast-message";
 
 const styles = StyleSheet.create({
   modalContainer: {
@@ -97,11 +91,18 @@ const styles = StyleSheet.create({
   },
 });
 
+type MenuModalProps = {
+  visible: boolean;
+  onClose?: () => void;
+  trigger?: () => void;
+  navigation: NavigationProp<RootStackParamList>;
+};
+
 const MenuModal: React.FC<MenuModalProps> = ({ visible, onClose, trigger, navigation }) => {
   const slideAnim = useRef(new Animated.Value(-300)).current;
-
   const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
+  const setCurrentProfile = useUserStore((state) => state.setCurrentProfile);
 
   const closeMenu = () => {
     Animated.timing(slideAnim, {
@@ -136,11 +137,10 @@ const MenuModal: React.FC<MenuModalProps> = ({ visible, onClose, trigger, naviga
   };
 
   const handleChangeProfile = () => {
+    setCurrentProfile(null);
+    Toast.show({ type: "info", text1: "Selecione um perfil" });
     closeMenu();
-    navigation.reset({
-      index: 0,
-      routes: [{ name: "ChooseProfile" }],
-    });
+    navigation.reset({ index: 0, routes: [{ name: "ChooseProfile" }] });
   };
 
   useEffect(() => {
