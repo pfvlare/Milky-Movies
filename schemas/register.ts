@@ -1,14 +1,21 @@
-import { z } from 'zod';
-import { SubscriptionSchema } from './subscription';
+import * as yup from 'yup';
 
-export const RegisterSchema = z.object({
-    firstname: z.string().min(1, 'Nome é obrigatório'),
-    lastname: z.string().min(1, 'Sobrenome é obrigatório'),
-    email: z.string().email('Email inválido'),
-    password: z.string().regex(/^\d{6}$/, 'A senha deve ter exatamente 6 números'),
-    phone: z.string().regex(/^\d{11}$/, 'Digite 11 números'),
-    address: z.string().min(1, 'Endereço é obrigatório'),
-    subscription: SubscriptionSchema, // ← corrigido aqui
+export type RegisterType = {
+    email: string;
+    password: string;
+    firstname: string;
+    lastname: string;
+    phone: string;
+    address: string;
+    plan: 'basic' | 'intermediary' | 'complete'; // ✅ novo campo
+};
+
+export const registerSchema = yup.object().shape({
+    email: yup.string().email().required(),
+    password: yup.string().min(6).required(),
+    firstname: yup.string().required(),
+    lastname: yup.string().required(),
+    phone: yup.string().required(),
+    address: yup.string().required(),
+    plan: yup.string().oneOf(['basic', 'intermediary', 'complete']).required(), // ✅
 });
-
-export type RegisterType = z.infer<typeof RegisterSchema>;
