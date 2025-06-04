@@ -44,11 +44,17 @@ const plans = [
     },
 ];
 
-export default function ChoosePlanScreen() {
+export default function ChoosePlanScreen({ route }: { route: { params: { userId: string } } }) {
     const navigation = useNavigation<NavigationProp>();
+    const { userId } = route.params;
     const [selectedPlan, setSelectedPlan] = useState<any | null>(null);
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
+        if (userId) {
+            navigation.navigate("Subscription", { selectedPlan, userId });
+            return;
+        }
+
         if (!selectedPlan) return;
         navigation.navigate("Register", { selectedPlan });
     };

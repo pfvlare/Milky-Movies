@@ -24,6 +24,7 @@ import { LoginType, LoginSchema } from "../schemas/login";
 import { useUserStore } from "../store/userStore";
 import { RootStackParamList } from "../Navigation/Navigation";
 import { theme } from "../theme";
+import Toast from "react-native-toast-message";
 
 export default function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Login">>();
@@ -40,23 +41,21 @@ export default function LoginScreen() {
   const onSubmit = async (data: LoginType) => {
     try {
       const response = await login.mutateAsync(data);
-      const user = response.data;
+      console.log("🚀 ~ onSubmit ~ response:", response)
+
+      const user = response;
 
       if (user?.id) {
         setUser(user);
-        await AsyncStorage.setItem("@user", JSON.stringify(user));
-        await AsyncStorage.setItem("@isLoggedIn", "true");
 
         if (user.isSubscribed) {
           navigation.replace("Home");
         } else {
-          navigation.replace("Subscription", { userId: user.id });
+          navigation.replace("ChoosePlan", { userId: user.id });
         }
-      } else {
-        navigation.replace("ChoosePlan");
       }
     } catch (err: any) {
-      Alert.alert("Erro", err?.message || "Falha no login");
+      Toast.show({ type: "error", text1: err?.message || "Falha no login" });
       console.error("❌ Erro ao logar:", err);
     }
   };

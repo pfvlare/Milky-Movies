@@ -32,7 +32,10 @@ export function useRegister() {
 
 export function useLogin() {
     return useMutation({
-        mutationFn: (data: any) => api.post('/user/login', data),
+        mutationFn: async (data: any) => {
+            const response = await api.post('/user/login', data)
+            return response.data
+        }
     });
 }
 

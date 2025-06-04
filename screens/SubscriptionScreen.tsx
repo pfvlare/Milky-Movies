@@ -26,17 +26,19 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCreateCard } from "../hooks/useCards";
 import { useFindById } from "../hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
+import { useCreateSubscription } from "../hooks/useSubscription";
 
 const theme = themeConfig.theme;
 
 type Props = NativeStackScreenProps<RootStackParamList, "Subscription">;
 
 export default function SubscriptionScreen({ navigation, route }: Props) {
+  const { userId, selectedPlan } = route.params;
+
   const queryClient = useQueryClient();
   const createCard = useCreateCard();
+  const registerPlan = useCreateSubscription(userId)
   const setSubscription = useUserStore((state) => state.setSubscription);
-
-  const { userId } = route.params;
 
   const {
     control,
@@ -48,6 +50,14 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
 
   const onSubmit = async (data: SubscriptionType) => {
     try {
+      if (selectedPlan) {
+        await registerPlan.mutateAsync({
+          plan: selectedPlan.code,
+          value: selectedPlan.price,
+          userId: userId,
+        });
+      }
+
       const { data: user, isSuccess } = useFindById(userId);
 
       const [month, year] = data.expiry.split("/");
@@ -75,7 +85,7 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
         },
       };
 
-      if (isSuccess) {
+      if (isSuccess || registerPlan.isSuccess) {
         setSubscription(updated.subscription);
         Toast.show({ type: "success", text1: "Cartão registrado com sucesso!" });
         queryClient.invalidateQueries({ queryKey: ['user'] });

@@ -3,7 +3,7 @@ export type RootStackParamList = {
     Splash: undefined;
     Login: undefined;
     Register: { userToEdit?: any } | undefined;
-    Subscription: { userId: string };
+    Subscription: { userId: string, selectedPlan?: any } | undefined;
     Home: undefined;
     Movie: any;
     Person: any;
@@ -26,7 +26,6 @@ export type RootStackParamList = {
         data: any[];
     };
 
-    // ✅ Telas de perfil
     ChooseProfile: undefined;
     CreateProfiles: {
         maxProfiles: number;
