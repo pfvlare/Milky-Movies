@@ -1,3 +1,4 @@
+// src/screens/SubscriptionScreen.tsx
 import React from "react";
 import {
   View,
@@ -37,8 +38,9 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
 
   const queryClient = useQueryClient();
   const createCard = useCreateCard();
-  const registerPlan = useCreateSubscription(userId)
+  const registerPlan = useCreateSubscription(userId);
   const setSubscription = useUserStore((state) => state.setSubscription);
+  const { data: user, isSuccess } = useFindById(userId);
 
   const {
     control,
@@ -58,13 +60,13 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
         });
       }
 
-      const { data: user, isSuccess } = useFindById(userId);
+      if (!user) throw new Error("Usuário não encontrado");
 
       const [month, year] = data.expiry.split("/");
       const expiresDate = new Date(Number(`20${year}`), Number(month) - 1);
 
       const payload = {
-        nameCard: `${user?.firstname} ${user?.lastname}`,
+        nameCard: `${user.firstname} ${user.lastname}`,
         cardNumber: data.cardNumber,
         securityCode: data.cvv,
         expiresDate: expiresDate.toISOString(),

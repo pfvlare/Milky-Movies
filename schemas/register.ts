@@ -1,21 +1,16 @@
-import * as yup from 'yup';
+import { z } from "zod";
 
-export type RegisterType = {
-    email: string;
-    password: string;
-    firstname: string;
-    lastname: string;
-    phone: string;
-    address: string;
-    plan: 'basic' | 'intermediary' | 'complete'; // ✅ novo campo
-};
-
-export const registerSchema = yup.object().shape({
-    email: yup.string().email().required(),
-    password: yup.string().min(6).required(),
-    firstname: yup.string().required(),
-    lastname: yup.string().required(),
-    phone: yup.string().required(),
-    address: yup.string().required(),
-    plan: yup.string().oneOf(['basic', 'intermediary', 'complete']).required(), // ✅
+export const RegisterSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(6),
+    firstname: z.string().min(1),
+    lastname: z.string().min(1),
+    phone: z.string().min(1),
+    address: z.string().min(1),
+    subscription: z.object({
+        plan: z.enum(["basic", "intermediary", "complete"]),
+        value: z.number(),
+    }),
 });
+
+export type RegisterType = z.infer<typeof RegisterSchema>;

@@ -12,7 +12,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { RootStackParamList } from "../Navigation/Navigation";
+import { RootStackParamList } from "../Navigation/NavigationTypes";
 import { theme } from "../theme";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "ChoosePlan">;
@@ -56,7 +56,15 @@ export default function ChoosePlanScreen({ route }: { route: { params: { userId:
         }
 
         if (selectedPlan) {
-            navigation.navigate("Register", { selectedPlan });
+            if (selectedPlan) {
+                navigation.navigate("Register", {
+                    selectedPlan: {
+                        name: selectedPlan.name,
+                        code: selectedPlan.code,
+                        price: selectedPlan.price,
+                    },
+                });
+            }
         }
     };
 

@@ -2,7 +2,14 @@ export type RootStackParamList = {
     Welcome: undefined;
     Splash: undefined;
     Login: undefined;
-    Register: { userToEdit?: any } | undefined;
+    Register: {
+        userToEdit?: any,
+        selectedPlan?: {
+            name: string;
+            code: string;
+            price: string;
+        }
+    } | undefined;
     Subscription: { userId: string, selectedPlan?: any } | undefined;
     Home: undefined;
     Movie: any;

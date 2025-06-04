@@ -22,7 +22,7 @@ import {
 } from "../hooks/useMovies";
 import Toast from "react-native-toast-message";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../Navigation/Navigation";
+import { RootStackParamList } from "../Navigation/NavigationTypes";
 import { useUserStore } from "../store/userStore";
 
 const theme = themeConfig.theme;
@@ -85,6 +85,13 @@ export default function HomeScreen({ navigation, route }: Props) {
       text1: error.message || "Erro ao carregar filmes",
     });
   }
+  console.log('HomeScreen Debug:', {
+    isLoading,
+    currentProfileId,
+    hasError: !!error,
+    hasTrendingData: !!trendingMovies?.results?.length,
+    errorMessage: error?.message
+  });
 
   const handleMenu = () => setShowMenu((prev) => !prev);
 

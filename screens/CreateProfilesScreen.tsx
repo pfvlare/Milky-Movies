@@ -42,7 +42,6 @@ export default function CreateProfilesScreen() {
             .map((name, index) => {
                 if (!name.trim()) return null;
 
-                // Escolher uma cor aleatória não usada ainda
                 const availableColors = profileColors.filter((c) => !usedColors.includes(c));
                 const color = availableColors.length > 0
                     ? availableColors[Math.floor(Math.random() * availableColors.length)]

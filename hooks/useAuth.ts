@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../utils/axios';
+import { RegisterType } from '../schemas/register';
 
 export interface Subscription {
     id: string;
@@ -23,9 +24,9 @@ export interface User {
 
 export function useRegister() {
     return useMutation({
-        mutationFn: async (data: any) => {
+        mutationFn: async (data: RegisterType) => {
             const response = await api.post('/user/register', data)
-            return response
+            return response.data
         }
     });
 }

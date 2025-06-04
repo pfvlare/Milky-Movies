@@ -19,10 +19,11 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import * as themeConfig from "../theme";
 import { RegisterSchema, RegisterType } from "../schemas/register";
-import { RootStackParamList } from "../Navigation/Navigation";
+import { RootStackParamList } from "../Navigation/NavigationTypes";
 import { useUserStore } from "../store/userStore";
 import { AxiosError } from "axios";
 import { useRegister } from "../hooks/useAuth";
+import Loading from "../components/loading";
 
 const theme = themeConfig.theme;
 
@@ -34,6 +35,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
 
   const setUser = useUserStore((state) => state.setUser);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     control,
@@ -50,16 +52,19 @@ export default function RegisterScreen({ navigation, route }: Props) {
       address: userToEdit?.address || "",
       password: "",
       subscription: {
-        plan: selectedPlan?.code || "",
+        plan: (selectedPlan?.code || "") as "basic" | "intermediary" | "complete",
         value: Number(selectedPlan?.price) || 0,
       },
     },
   });
 
-  const { mutateAsync, isPending } = useRegister();
+  const { mutateAsync } = useRegister();
 
   const onSubmit = async (data: RegisterType) => {
     try {
+      setIsLoading(true);
+      console.log("📤 Enviando registro:", data);
+
       if (userToEdit) {
         const updatedUser = { ...userToEdit, ...data };
         setUser(updatedUser);
@@ -69,17 +74,16 @@ export default function RegisterScreen({ navigation, route }: Props) {
         return;
       }
 
-      const response = await mutateAsync(data);
-      const user = response.data;
-      const token = response.token;
+      const user = await mutateAsync(data);
 
-      setUser(user);
-      await AsyncStorage.setItem("@token", token);
+      if (!user?.id) {
+        throw new Error("Usuário inválido.");
+      }
 
+      await AsyncStorage.setItem("@user", JSON.stringify(user));
       setUser(user);
 
       Toast.show({ type: "success", text1: "Usuário registrado com sucesso!" });
-
       navigation.replace("Subscription", { userId: user.id });
 
     } catch (error: unknown) {
@@ -93,6 +97,8 @@ export default function RegisterScreen({ navigation, route }: Props) {
       });
 
       console.error("❌ Erro no registro:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -228,6 +234,8 @@ export default function RegisterScreen({ navigation, route }: Props) {
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      {isLoading && <Loading />}
     </SafeAreaView>
   );
 }

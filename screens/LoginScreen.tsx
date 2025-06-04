@@ -50,7 +50,7 @@ export default function LoginScreen() {
         await AsyncStorage.setItem("@token", token);
 
         if (user.isSubscribed) {
-          navigation.replace("Home");
+          navigation.replace("ChooseProfile");
         } else {
           navigation.replace("ChoosePlan", { userId: user.id } as any);
         }
@@ -99,7 +99,6 @@ export default function LoginScreen() {
               <Text style={styles.errorText}>{errors.email.message}</Text>
             )}
 
-            {/* Senha */}
             <Controller
               control={control}
               name="password"
@@ -129,7 +128,6 @@ export default function LoginScreen() {
               <Text style={styles.errorText}>{errors.password.message}</Text>
             )}
 
-            {/* Botão Entrar com degradê */}
             <LinearGradient
               colors={["#EC4899", "#D946EF"]}
               start={{ x: 0, y: 0 }}

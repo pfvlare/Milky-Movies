@@ -1,6 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import { Platform } from 'react-native';
 
 const apiBaseUrl = 'https://api.themoviedb.org/3';
 const apiKey = 'e904543c605644245d09f8df44a58e7b';
@@ -17,9 +15,9 @@ export const fallBackPersonImage = require('../assets/images/ActorError.png');
 
 export const fetcher = async (path: string, params: Record<string, any> = {}) => {
     try {
-        const url = new URL(`https://api.themoviedb.org/3${path}`);
+        const url = new URL(`${apiBaseUrl}${path}`);
         url.searchParams.append('language', 'pt-BR');
-        url.searchParams.append('api_key', 'e904543c605644245d09f8df44a58e7b');
+        url.searchParams.append('api_key', apiKey);
 
         Object.entries(params).forEach(([key, value]) =>
             url.searchParams.append(key, value)
@@ -34,22 +32,25 @@ export const fetcher = async (path: string, params: Record<string, any> = {}) =>
     }
 };
 
-export const useTrendingMovies = () =>
+export const useTrendingMovies = (profileId?: string) =>
     useQuery({
-        queryKey: ['trending-movies'],
+        queryKey: ['trending-movies', profileId],
         queryFn: () => fetcher('/trending/movie/day'),
+        enabled: !!profileId,
     });
 
-export const useUpcomingMovies = () =>
+export const useUpcomingMovies = (profileId?: string) =>
     useQuery({
-        queryKey: ['upcoming-movies'],
+        queryKey: ['upcoming-movies', profileId],
         queryFn: () => fetcher('/movie/upcoming'),
+        enabled: !!profileId,
     });
 
-export const useTopRatedMovies = () =>
+export const useTopRatedMovies = (profileId?: string) =>
     useQuery({
-        queryKey: ['top-rated-movies'],
+        queryKey: ['top-rated-movies', profileId],
         queryFn: () => fetcher('/movie/top_rated'),
+        enabled: !!profileId,
     });
 
 export const useMovieDetails = (id: string | number) =>
