@@ -69,7 +69,12 @@ export default function RegisterScreen({ navigation, route }: Props) {
         return;
       }
 
-      const { data: user } = await mutateAsync(data);
+      const response = await mutateAsync(data);
+      const user = response.data;
+      const token = response.token;
+
+      setUser(user);
+      await AsyncStorage.setItem("@token", token);
 
       setUser(user);
 

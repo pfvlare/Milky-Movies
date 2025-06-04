@@ -6,7 +6,7 @@ export const registerUser = async (data: RegisterType) => {
     const response = await axios.post(`${BACKEND_URL}/user/register`, {
         ...data,
         email: data.email.toLowerCase(),
-        plan: data.plan, // ✅ importante
+        plan: data.plan,
     });
 
     return response.data;

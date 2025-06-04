@@ -22,7 +22,7 @@ import AppLayout from "../components/AppLayout";
 import { useLogin } from "../hooks/useAuth";
 import { LoginType, LoginSchema } from "../schemas/login";
 import { useUserStore } from "../store/userStore";
-import { RootStackParamList } from "../Navigation/Navigation";
+import { RootStackParamList } from "../Navigation/NavigationTypes";
 import { theme } from "../theme";
 import Toast from "react-native-toast-message";
 
@@ -41,19 +41,21 @@ export default function LoginScreen() {
   const onSubmit = async (data: LoginType) => {
     try {
       const response = await login.mutateAsync(data);
-      console.log("🚀 ~ onSubmit ~ response:", response)
+      console.log("🚀 ~ onSubmit ~ response:", response);
 
-      const user = response;
+      const { token, user } = response;
 
-      if (user?.id) {
+      if (user?.id && token) {
         setUser(user);
+        await AsyncStorage.setItem("@token", token);
 
         if (user.isSubscribed) {
           navigation.replace("Home");
         } else {
-          navigation.replace("ChoosePlan", { userId: user.id });
+          navigation.replace("ChoosePlan", { userId: user.id } as any);
         }
       }
+
     } catch (err: any) {
       Toast.show({ type: "error", text1: err?.message || "Falha no login" });
       console.error("❌ Erro ao logar:", err);
