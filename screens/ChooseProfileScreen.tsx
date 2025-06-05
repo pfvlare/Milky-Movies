@@ -128,7 +128,10 @@ export default function ChooseProfileScreen() {
     // Configurar cor inicial baseada nas cores disponíveis
     useEffect(() => {
         if (showModal && editingIndex === null) {
-            // Para novo perfil, usar primeira cor disponível
+            // Para novo perfil, usar primeira cor disponível APENAS na abertura do modal
+            const usedColors = profiles.map((p) => p.color);
+            const availableColors = profileColors.filter((c) => !usedColors.includes(c));
+
             if (availableColors.length > 0) {
                 setSelectedColor(availableColors[0]);
             } else {
@@ -136,7 +139,7 @@ export default function ChooseProfileScreen() {
                 setSelectedColor(profileColors[0]);
             }
         }
-    }, [showModal, editingIndex, availableColors]);
+    }, [showModal, editingIndex]); // REMOVIDO: availableColors das dependências
 
     // Verificar se o usuário tem ID
     useEffect(() => {

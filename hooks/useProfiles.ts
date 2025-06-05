@@ -202,7 +202,7 @@ export function useEnforceProfileLimits() {
             if (data.removedProfiles && data.removedProfiles.length > 0) {
                 const removedNames = data.removedProfiles.map(p => p.name).join(', ');
                 Toast.show({
-                    type: "warning",
+                    type: "info",
                     text1: "Perfis removidos",
                     text2: `${data.removedProfiles.length} perfil(s) foram removidos: ${removedNames}`
                 });

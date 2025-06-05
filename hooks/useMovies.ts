@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const API_BASE_URL = 'http://localhost:3000'; // ou sua URL do backend
+const API_BASE_URL = 'https://wholly-lenient-man.ngrok-free.app'; // ou sua URL do backend
 
 const fetcher = async (endpoint: string) => {
     try {
