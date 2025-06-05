@@ -27,7 +27,7 @@ const plans = [
     {
         id: "basic",
         name: "Plano Básico",
-        price: "18.90",
+        price: 18.90, // ✅ Number
         code: "basic",
         details: ["1 dispositivo por vez", "Qualidade SD (480p)", "Com anúncios"],
         maxProfiles: 1,
@@ -35,7 +35,7 @@ const plans = [
     {
         id: "intermediary",
         name: "Plano Padrão",
-        price: "39.90",
+        price: 39.90, // ✅ Number  
         code: "intermediary",
         details: ["2 dispositivos ao mesmo tempo", "Qualidade HD (720p)", "Sem anúncios"],
         maxProfiles: 2,
@@ -43,7 +43,7 @@ const plans = [
     {
         id: "complete",
         name: "Plano Premium",
-        price: "55.90",
+        price: 55.90, // ✅ Number
         code: "complete",
         details: ["4 dispositivos ao mesmo tempo", "Qualidade Ultra HD (4K)", "Sem anúncios"],
         maxProfiles: 4,

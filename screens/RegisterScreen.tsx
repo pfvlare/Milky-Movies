@@ -43,11 +43,19 @@ export default function RegisterScreen({ navigation, route }: Props) {
   const { mutateAsync: registerUser } = useRegister();
   const { mutateAsync: updateUser, isPending: isUpdating } = useUpdateUser();
 
+  // Debug: Log dos parâmetros recebidos
+  console.log('🔍 RegisterScreen - Parâmetros:', {
+    selectedPlan,
+    userToEdit: userToEdit ? { id: userToEdit.id, email: userToEdit.email } : null,
+    isEditMode: !!userToEdit,
+  });
+
   // Configurar formulário baseado no modo (registro ou edição)
   const {
     control,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
+    watch,
   } = useForm({
     mode: "onChange",
     resolver: zodResolver(userToEdit ? UpdateUserSchema : RegisterSchema),
@@ -64,38 +72,45 @@ export default function RegisterScreen({ navigation, route }: Props) {
       phone: "",
       address: "",
       password: "",
+      // ✅ CORREÇÃO: Manter em minúsculo para o backend
       subscription: {
-        plan: (selectedPlan?.code || "") as "basic" | "intermediary" | "complete",
-        value: Number(selectedPlan?.price) || 0,
+        plan: selectedPlan?.code || "basic", // Sempre minúsculo
+        value: Number(selectedPlan?.price) || 18.90,
       },
     },
   });
 
+  // Debug: Verificar valores do formulário em tempo real
+  const watchedValues = watch();
+  console.log('🔍 Form state:', {
+    errors: Object.keys(errors),
+    isValid,
+    hasValues: Object.keys(watchedValues).length > 0,
+    formData: watchedValues,
+  });
+
   const onSubmit = async (data: RegisterType | UpdateUserType) => {
+    console.log('🚀 onSubmit EXECUTADO! Dados recebidos:', data);
+
     try {
       setIsLoading(true);
+      console.log('⏳ Loading state definido como true');
 
       if (userToEdit) {
+        console.log('✏️ Modo EDIÇÃO iniciado');
         // Modo de edição
-        console.log("✏️ Editando usuário:", { id: userToEdit.id, data });
-
         const updatedUserData = await updateUser({
           id: userToEdit.id,
           data: data as UpdateUserType
         });
 
-        console.log("✅ Usuário atualizado:", updatedUserData);
-
-        // Atualizar estado global do usuário
         const newUserState = {
           ...user,
           ...updatedUserData,
-          currentProfileId: user?.currentProfileId // Manter perfil atual
+          currentProfileId: user?.currentProfileId
         };
 
         setUser(newUserState);
-
-        // Atualizar AsyncStorage
         await AsyncStorage.setItem("@user", JSON.stringify(newUserState));
 
         Toast.show({
@@ -108,10 +123,24 @@ export default function RegisterScreen({ navigation, route }: Props) {
         return;
       }
 
-      // Modo de registro
-      console.log("📤 Registrando novo usuário:", data);
+      console.log('🆕 Modo REGISTRO iniciado');
 
-      const newUser = await registerUser(data as RegisterType);
+      // ✅ CORREÇÃO: Garantir que o plano está em minúsculo antes de enviar
+      const registerData = {
+        ...data,
+        subscription: {
+          ...(data as RegisterType).subscription,
+          plan: (data as RegisterType).subscription.plan.toLowerCase() // Converter para minúsculo
+        }
+      } as RegisterType;
+
+      console.log("📤 Enviando dados para registro (corrigidos):", {
+        ...registerData,
+        password: '[HIDDEN]'
+      });
+
+      const newUser = await registerUser(registerData);
+      console.log('✅ Usuário registrado retornado:', newUser);
 
       if (!newUser?.id) {
         throw new Error("Usuário inválido retornado da API");
@@ -126,7 +155,16 @@ export default function RegisterScreen({ navigation, route }: Props) {
         text2: "Conta criada com sucesso"
       });
 
-      navigation.replace("Subscription", { userId: newUser.id });
+      console.log('🔄 Navegando para Subscription com:', {
+        userId: newUser.id,
+        selectedPlan: selectedPlan
+      });
+
+      // ✅ CORREÇÃO: Passou selectedPlan para SubscriptionScreen
+      navigation.replace("Subscription", {
+        userId: newUser.id,
+        selectedPlan: selectedPlan
+      });
 
     } catch (error: unknown) {
       console.error("❌ Erro na operação:", error);
@@ -147,8 +185,22 @@ export default function RegisterScreen({ navigation, route }: Props) {
         text2: errorMessage,
       });
     } finally {
+      console.log('🔄 Loading state definido como false');
       setIsLoading(false);
     }
+  };
+
+  // Debug: Testar se o botão está sendo clicado
+  const handleButtonPress = () => {
+    console.log('🔘 BOTÃO CLICADO!');
+    console.log('🔘 Current loading state:', isLoading);
+    console.log('🔘 Current updating state:', isUpdating);
+    console.log('🔘 Current disabled state:', currentIsLoading);
+    console.log('🔘 Form errors:', errors);
+    console.log('🔘 Form isValid:', isValid);
+
+    // Chamar handleSubmit manualmente
+    handleSubmit(onSubmit)();
   };
 
   const fields = [
@@ -161,6 +213,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
 
   // Validação para modo de registro
   if (!userToEdit && !selectedPlan) {
+    console.log('❌ Nenhum plano selecionado, mostrando tela de erro');
     return (
       <SafeAreaView style={styles.container}>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
@@ -179,6 +232,12 @@ export default function RegisterScreen({ navigation, route }: Props) {
   }
 
   const currentIsLoading = isLoading || isUpdating;
+
+  console.log('🎨 Renderizando tela principal. Loading states:', {
+    isLoading,
+    isUpdating,
+    currentIsLoading,
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -267,8 +326,9 @@ export default function RegisterScreen({ navigation, route }: Props) {
           </View>
         )}
 
+        {/* ✅ ALTERAÇÃO: Usar função de debug em vez de handleSubmit direto */}
         <TouchableOpacity
-          onPress={handleSubmit(onSubmit)}
+          onPress={handleButtonPress}
           disabled={currentIsLoading}
           style={[styles.gradientButtonContainer, currentIsLoading && styles.disabledButton]}
         >
@@ -291,6 +351,23 @@ export default function RegisterScreen({ navigation, route }: Props) {
             )}
           </LinearGradient>
         </TouchableOpacity>
+
+        {/* Debug info - remover em produção */}
+        {__DEV__ && (
+          <View style={{ padding: 20, backgroundColor: "#1F2937", margin: 18, borderRadius: 8 }}>
+            <Text style={{ color: "white", fontSize: 12, fontFamily: "monospace" }}>
+              DEBUG INFO:{'\n'}
+              Loading: {isLoading ? 'true' : 'false'}{'\n'}
+              Updating: {isUpdating ? 'true' : 'false'}{'\n'}
+              Disabled: {currentIsLoading ? 'true' : 'false'}{'\n'}
+              Valid: {isValid ? 'true' : 'false'}{'\n'}
+              Errors: {Object.keys(errors).join(', ') || 'none'}{'\n'}
+              Mode: {userToEdit ? 'edit' : 'register'}{'\n'}
+              Plan: {selectedPlan?.name || 'none'}{'\n'}
+              Plan Code: {selectedPlan?.code || 'none'}
+            </Text>
+          </View>
+        )}
 
         {!userToEdit && (
           <TouchableOpacity onPress={() => navigation.navigate("Login")}>

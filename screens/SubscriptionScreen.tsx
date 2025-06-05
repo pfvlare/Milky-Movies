@@ -73,10 +73,23 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
     formState: { errors },
   } = useForm<SubscriptionType>({
     resolver: zodResolver(SubscriptionSchema),
+    defaultValues: {
+      cardNumber: "",
+      cvv: "",
+      expiry: "",
+    },
   });
 
   // Decidir se mostra formulário ou lista de cartões
   useEffect(() => {
+    console.log('🔍 SubscriptionScreen context analysis:', {
+      userId,
+      selectedPlan: selectedPlan ? { name: selectedPlan.name, code: selectedPlan.code } : null,
+      isUpdate,
+      existingCardsCount: existingCards.length,
+      context: selectedPlan ? 'Cadastro/Assinatura' : 'Perfil/Adição de cartão'
+    });
+
     if (existingCards.length === 0) {
       setShowNewCardForm(true);
     } else {
@@ -86,7 +99,7 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
         setSelectedCardId(existingCards[0]?.id);
       }
     }
-  }, [existingCards, selectedCardId]);
+  }, [existingCards, selectedCardId, selectedPlan, isUpdate, userId]);
 
   console.log('🔍 SubscriptionScreen params:', { userId, selectedPlan, isUpdate });
   console.log('🔍 Existing cards:', existingCards);
@@ -112,8 +125,22 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
 
       if (!userData) throw new Error("Usuário não encontrado");
 
+      // Lógica da data (mantém igual)
       const [month, year] = data.expiry.split("/");
-      const expiresDate = new Date(Number(`20${year}`), Number(month) - 1);
+      const monthNum = parseInt(month, 10);
+      const yearNum = parseInt(`20${year}`, 10);
+
+      if (monthNum < 1 || monthNum > 12) {
+        throw new Error("Mês inválido. Use formato MM/AA");
+      }
+
+      if (yearNum < new Date().getFullYear()) {
+        throw new Error("Ano não pode ser no passado");
+      }
+
+      // Criar data corretamente - último dia do mês
+      const lastDayOfMonth = new Date(yearNum, monthNum, 0).getDate();
+      const expiresDate = new Date(yearNum, monthNum - 1, lastDayOfMonth, 23, 59, 59);
 
       const cardPayload = {
         nameCard: `${userData.firstname} ${userData.lastname}`,
@@ -124,14 +151,9 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
       };
 
       console.log('🔄 Criando novo cartão:', cardPayload);
+
       const newCard = await createCard.mutateAsync(cardPayload);
-
       await refetchCards();
-
-      // Se há um plano selecionado, processar assinatura
-      if (selectedPlan) {
-        await handleSubscription(selectedPlan);
-      }
 
       Toast.show({
         type: "success",
@@ -142,17 +164,33 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
       reset();
       setShowNewCardForm(false);
 
-      // Se não há plano selecionado, voltar para perfil
-      if (!selectedPlan) {
-        navigation.goBack();
+      // CORREÇÃO: Lógica de navegação baseada no contexto
+      if (selectedPlan) {
+        // Se há plano selecionado, é um fluxo de cadastro/assinatura
+        console.log('🎯 Fluxo de cadastro/assinatura - processando assinatura');
+        await handleSubscription(selectedPlan);
+      } else {
+        // Se não há plano, é apenas adição de cartão do perfil
+        console.log('🎯 Fluxo de perfil - voltando para perfil');
+        navigation.navigate("Profile");
       }
 
     } catch (error: any) {
       console.error("❌ Erro ao criar cartão:", error);
+
+      let errorMessage = "Verifique os dados preenchidos.";
+
+      if (error.message?.includes("Mês inválido") || error.message?.includes("Ano não pode")) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.message) {
+        const apiMessage = error.response.data.message;
+        errorMessage = Array.isArray(apiMessage) ? apiMessage.join(", ") : apiMessage;
+      }
+
       Toast.show({
         type: "error",
         text1: "Erro ao adicionar cartão",
-        text2: error?.response?.data?.message || "Verifique os dados preenchidos.",
+        text2: errorMessage,
       });
     } finally {
       setIsProcessing(false);
@@ -161,15 +199,57 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
 
   const handleSubscription = async (plan: any) => {
     try {
+      console.log('🔍 Plan object details:', {
+        selectedPlan: plan,
+        planCode: plan?.code,
+        planCodeType: typeof plan?.code,
+      });
+
+      // Validar se o plano tem as propriedades necessárias
+      if (!plan || !plan.code || !plan.price) {
+        throw new Error("Dados do plano inválidos");
+      }
+
+      // Converter para minúsculo para bater com o enum do Prisma
+      let planCode = plan.code.toString().toLowerCase().trim();
+
+      // Mapear possíveis variações para os valores corretos
+      const planMapping: { [key: string]: string } = {
+        'basic': 'basic',
+        'basico': 'basic',
+        'intermediary': 'intermediary',
+        'intermediario': 'intermediary',
+        'padrão': 'intermediary',
+        'padrao': 'intermediary',
+        'complete': 'complete',
+        'completo': 'complete',
+        'premium': 'complete'
+      };
+
+      planCode = planMapping[planCode] || planCode;
+
+      // Verificar se o plano é válido
+      const validPlans = ['basic', 'intermediary', 'complete'];
+      if (!validPlans.includes(planCode)) {
+        throw new Error(`Plano inválido: ${plan.code}. Planos aceitos: ${validPlans.join(', ')}`);
+      }
+
       const subscriptionPayload = {
-        plan: plan.code,
+        plan: planCode,
         value: Number(plan.price),
         userId: userId,
       };
 
-      console.log('🔄 Processando assinatura:', subscriptionPayload);
+      console.log('🔄 Payload antes do envio:', {
+        originalPlan: plan.code,
+        transformedPlan: planCode,
+        finalPayload: subscriptionPayload,
+        planType: typeof subscriptionPayload.plan,
+        validPlans: validPlans
+      });
 
       if (isUpdate) {
+        console.log('🔄 Atualizando assinatura...');
         await updateSubscription.mutateAsync(subscriptionPayload);
         Toast.show({
           type: "success",
@@ -177,6 +257,7 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
           text2: `Plano ${plan.name} ativado`
         });
       } else {
+        console.log('🔄 Criando nova assinatura...');
         await createSubscription.mutateAsync(subscriptionPayload);
         Toast.show({
           type: "success",
@@ -200,19 +281,36 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
       queryClient.invalidateQueries({ queryKey: ['user'] });
 
-      // Navegar baseado no contexto
+      // CORREÇÃO: Navegação baseada no contexto
       if (isUpdate) {
-        navigation.goBack(); // Voltar para perfil
+        // Atualização de plano - voltar para perfil
+        console.log('🎯 Atualização concluída - voltando para perfil');
+        navigation.goBack();
       } else {
-        navigation.reset({ index: 0, routes: [{ name: "ChooseProfile" }] });
+        // Novo cadastro - ir para escolha de perfil (ou home)
+        console.log('🎯 Novo cadastro concluído - indo para ChooseProfile');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "ChooseProfile" }]
+        });
       }
 
     } catch (error: any) {
       console.error("❌ Erro na assinatura:", error);
+      console.error("❌ Error response:", error?.response?.data);
+
+      let errorMessage = "Tente novamente.";
+      if (error.message?.includes("Plano inválido")) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.message) {
+        const apiMessage = error.response.data.message;
+        errorMessage = Array.isArray(apiMessage) ? apiMessage.join(", ") : apiMessage;
+      }
+
       Toast.show({
         type: "error",
         text1: "Erro na assinatura",
-        text2: error?.response?.data?.message || "Tente novamente.",
+        text2: errorMessage,
       });
     }
   };
@@ -227,9 +325,12 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
       return;
     }
 
+    // CORREÇÃO: Mesma lógica de contexto
     if (selectedPlan) {
+      console.log('🎯 Usando cartão existente para assinatura');
       await handleSubscription(selectedPlan);
     } else {
+      console.log('🎯 Seleção de cartão do perfil - voltando');
       navigation.goBack();
     }
   };
@@ -279,12 +380,21 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
   };
 
   const handleGoBack = () => {
+    console.log('🔙 HandleGoBack context:', {
+      showNewCardForm,
+      existingCardsCount: existingCards.length,
+      selectedPlan: selectedPlan ? selectedPlan.name : null,
+      canGoBack: navigation.canGoBack()
+    });
+
     if (showNewCardForm && existingCards.length > 0) {
       // Se está no formulário e há cartões, voltar para lista
+      console.log('🔙 Voltando do formulário para lista de cartões');
       setShowNewCardForm(false);
       reset();
     } else {
       // Senão, voltar para tela anterior
+      console.log('🔙 Voltando para tela anterior');
       if (navigation.canGoBack()) {
         navigation.goBack();
       } else {
@@ -293,15 +403,69 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
     }
   };
 
+  const formatCardNumberInput = (text: string) => {
+    // Remove tudo que não é número
+    const cleaned = text.replace(/\D/g, '');
+    return cleaned;
+  };
+
+  const formatCvvInput = (text: string) => {
+    // Remove tudo que não é número
+    const cleaned = text.replace(/\D/g, '');
+    return cleaned;
+  };
+
+  const formatExpiryInput = (text: string) => {
+    // Remover caracteres não numéricos
+    const sanitized = text.replace(/[^0-9]/g, "");
+
+    let formatted = sanitized;
+
+    // Adicionar barra automaticamente após 2 dígitos
+    if (sanitized.length >= 2) {
+      formatted = `${sanitized.slice(0, 2)}/${sanitized.slice(2, 4)}`;
+    }
+
+    // Validação em tempo real para o mês
+    if (sanitized.length >= 2) {
+      const month = parseInt(sanitized.slice(0, 2), 10);
+      if (month < 1 || month > 12) {
+        // Se o mês for inválido, não permitir
+        return text.slice(0, -1); // Remove o último caractere
+      }
+    }
+
+    return formatted;
+  };
+
   const fields: {
     name: keyof SubscriptionType;
     placeholder: string;
     keyboardType: KeyboardTypeOptions;
     maxLength: number;
+    formatter?: (text: string) => string;
   }[] = [
-      { name: "cardNumber", placeholder: "Número do cartão", keyboardType: "numeric", maxLength: 16 },
-      { name: "cvv", placeholder: "CVV", keyboardType: "numeric", maxLength: 3 },
-      { name: "expiry", placeholder: "Validade (MM/AA)", keyboardType: "numeric", maxLength: 5 },
+      {
+        name: "cardNumber",
+        placeholder: "Número do cartão (16 dígitos)",
+        keyboardType: "numeric",
+        maxLength: 16,
+        formatter: formatCardNumberInput
+      },
+      {
+        name: "cvv",
+        placeholder: "CVV (3 dígitos)",
+        keyboardType: "numeric",
+        maxLength: 3,
+        formatter: formatCvvInput
+      },
+      {
+        name: "expiry",
+        placeholder: "Validade (MM/AA)",
+        keyboardType: "numeric",
+        maxLength: 5,
+        formatter: formatExpiryInput
+      },
     ];
 
   if (isLoadingCards) {
@@ -361,16 +525,8 @@ export default function SubscriptionScreen({ navigation, route }: Props) {
                           maxLength={field.maxLength}
                           value={value}
                           onChangeText={(text) => {
-                            if (field.name === "expiry") {
-                              const sanitized = text.replace(/[^0-9]/g, "");
-                              if (sanitized.length === 2 && !text.includes("/")) {
-                                onChange(`${sanitized}/`);
-                              } else {
-                                onChange(text);
-                              }
-                            } else {
-                              onChange(text);
-                            }
+                            const formatted = field.formatter ? field.formatter(text) : text;
+                            onChange(formatted);
                           }}
                         />
                       </View>

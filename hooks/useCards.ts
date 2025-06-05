@@ -15,6 +15,18 @@ export function useCreateCard() {
     return useMutation({
         mutationFn: (data: any) => {
             console.log('🔄 Criando cartão:', data);
+
+            // Debug detalhado
+            console.log('📋 Dados detalhados:', {
+                nameCard: data.nameCard,
+                cardNumber: data.cardNumber,
+                securityCode: data.securityCode,
+                expiresDate: data.expiresDate,
+                userId: data.userId,
+                expiresDateType: typeof data.expiresDate,
+                isValidDate: !isNaN(Date.parse(data.expiresDate)),
+            });
+
             return api.post('/cards', data);
         },
         onSuccess: (data, variables) => {
@@ -24,6 +36,8 @@ export function useCreateCard() {
         },
         onError: (error: any) => {
             console.error('❌ Erro ao criar cartão:', error?.response?.data || error);
+            console.error('📋 Headers da requisição:', error?.config?.headers);
+            console.error('📋 Dados enviados:', error?.config?.data);
             throw error;
         }
     });

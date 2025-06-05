@@ -35,6 +35,30 @@ export interface UpdateUserData {
 export function useRegister() {
     return useMutation({
         mutationFn: async (data: RegisterType) => {
+            // DEBUG: Verificar dados antes de enviar
+            console.log('🔍 Dados sendo enviados para o backend:', {
+                ...data,
+                password: '[HIDDEN]'
+            });
+
+            // Verificação final - subscription deve existir
+            if (!data.subscription) {
+                console.error('❌ Subscription está vazio:', data.subscription);
+                throw new Error('Dados de assinatura são obrigatórios');
+            }
+
+            // ✅ CORREÇÃO: Aceitar apenas minúsculo (como o backend espera)
+            const validPlans = ['basic', 'intermediary', 'complete'];
+            if (!data.subscription.plan || !validPlans.includes(data.subscription.plan.toLowerCase())) {
+                console.error('❌ Plano inválido:', data.subscription.plan);
+                throw new Error(`Plano inválido: ${data.subscription.plan}. Deve ser: ${validPlans.join(', ')}`);
+            }
+
+            if (!data.subscription.value || data.subscription.value <= 0) {
+                console.error('❌ Valor inválido:', data.subscription.value);
+                throw new Error(`Valor inválido: ${data.subscription.value}`);
+            }
+
             const response = await api.post('/user/register', data);
             return response.data;
         }

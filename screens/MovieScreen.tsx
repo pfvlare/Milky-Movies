@@ -493,7 +493,6 @@ const MovieScreen = () => {
   };
 
   const handleWatchMovie = () => {
-    // Navegar para o player com URL do YouTube
     const movieTitle = movie?.title || title || "filme";
     const searchQuery = `${movieTitle} filme completo`;
     const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
