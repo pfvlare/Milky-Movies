@@ -28,8 +28,32 @@ export function useCardsByUser(userId: string) {
     });
 }
 
-export function useDeleteCard(cardId: string) {
+// Hook corrigido para delete - não precisa do cardId na inicialização
+export function useDeleteCard() {
     return useMutation({
-        mutationFn: () => api.delete(`/cards/${cardId}`),
+        mutationFn: (cardId: string) => {
+            console.log("🚀 ~ useDeleteCard ~ Deletando cartão ID:", cardId);
+            return api.delete(`/cards/${cardId}`);
+        },
     });
+}
+
+// Hook customizado para gerenciar ordem dos cartões
+export function useCardOrder(userId: string) {
+    const { data: cards, ...rest } = useCardsByUser(userId);
+
+    const reorderCards = (primaryCardId: string) => {
+        if (!cards) return cards;
+
+        const primaryCard = cards.find(card => card.id === primaryCardId);
+        const otherCards = cards.filter(card => card.id !== primaryCardId);
+
+        return primaryCard ? [primaryCard, ...otherCards] : cards;
+    };
+
+    return {
+        cards,
+        reorderCards,
+        ...rest
+    };
 }

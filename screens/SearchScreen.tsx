@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,184 +11,685 @@ import {
   Image,
   StyleSheet,
   Platform,
+  ActivityIndicator,
+  FlatList,
 } from "react-native";
-import { XMarkIcon } from "react-native-heroicons/outline";
-import { useNavigation } from "@react-navigation/native";
-import Loading from "../components/loading";
-import { fallBackMoviePoster, image185, searchMovies } from "../api/moviedb";
-import { debounce } from "lodash";
 import { Ionicons } from "@expo/vector-icons";
-import { useUserStore } from "../store/userStore"; // ✅ adicionado
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
+import { debounce } from "lodash";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { useSearchMovies } from "../hooks/useMovies";
+import { image185, fallBackMoviePoster } from "../hooks/useMovies";
+import { useUserStore } from "../store/userStore";
+import AppLayout from "../components/AppLayout";
+import Toast from "react-native-toast-message";
 
 const { width, height } = Dimensions.get("window");
 
-export default function SearchScreen() {
-  const navigation = useNavigation();
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+const SEARCH_HISTORY_KEY = "@search_history";
+const MAX_HISTORY_ITEMS = 10;
 
-  const currentProfileId = useUserStore((state) => state.user?.currentProfileId); // ✅ contexto de perfil
-
-  const handleSearch = (value: string) => {
-    if (value && value.length > 2) {
-      setLoading(true);
-      searchMovies({
-        query: value,
-        include_adult: "false",
-        language: "pt-BR",
-        page: "1",
-      }).then((data) => {
-        setLoading(false);
-        if (data && data.results) setResults(data.results);
-      });
-    } else {
-      setLoading(false);
-      setResults([]);
-    }
-  };
-
-  const handleTextDebounce = useCallback(debounce(handleSearch, 400), []);
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <TouchableOpacity
-        onPress={() =>
-          navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
-        }
-        style={styles.backButton}
-      >
-        <Ionicons name="arrow-back" size={24} color="#EC4899" />
-      </TouchableOpacity>
-
-      <View style={styles.searchBarContainer}>
-        <TextInput
-          onChangeText={handleTextDebounce}
-          placeholder="Procurar Filmes..."
-          placeholderTextColor="#6B7280"
-          style={styles.searchInput}
-        />
-        <TouchableOpacity style={styles.clearButton} onPress={() => setResults([])}>
-          <XMarkIcon size={24} color="white" />
-        </TouchableOpacity>
-      </View>
-
-      {loading ? (
-        <Loading />
-      ) : results.length > 0 ? (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={styles.resultsText}>Resultados ({results.length})</Text>
-          <View style={styles.movieGrid}>
-            {results.map((item, index) => (
-              <TouchableWithoutFeedback
-                key={index}
-                onPress={() => navigation.navigate("Movie", item)}
-              >
-                <View style={styles.movieItem}>
-                  <Image
-                    source={{
-                      uri: item.poster_path
-                        ? image185(item.poster_path)
-                        : fallBackMoviePoster,
-                    }}
-                    style={styles.moviePoster}
-                  />
-                  <Text style={styles.movieTitle}>
-                    {item.title?.length > 20
-                      ? item.title.slice(0, 20) + "..."
-                      : item.title}
-                  </Text>
-                </View>
-              </TouchableWithoutFeedback>
-            ))}
-          </View>
-        </ScrollView>
-      ) : (
-        <View style={styles.noResultsContainer}>
-          <Image
-            source={require("../assets/images/MovieTime.png")}
-            style={styles.noResultsImage}
-          />
-          <Text style={styles.noResultsText}>Sem Resultados...</Text>
-        </View>
-      )}
-    </SafeAreaView>
-  );
+interface SearchHistoryItem {
+  query: string;
+  timestamp: number;
 }
+
+interface PopularGenre {
+  id: number;
+  name: string;
+  emoji: string;
+}
+
+const POPULAR_GENRES: PopularGenre[] = [
+  { id: 28, name: "Ação", emoji: "💥" },
+  { id: 35, name: "Comédia", emoji: "😂" },
+  { id: 18, name: "Drama", emoji: "🎭" },
+  { id: 27, name: "Terror", emoji: "👻" },
+  { id: 10749, name: "Romance", emoji: "💕" },
+  { id: 878, name: "Ficção", emoji: "🚀" },
+  { id: 53, name: "Suspense", emoji: "🔍" },
+  { id: 16, name: "Animação", emoji: "🎨" },
+];
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#111827",
-    paddingTop: Platform.OS === "ios" ? 50 : 30,
-    paddingHorizontal: 24,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 60 : 40,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
   },
   backButton: {
-    position: "absolute",
-    top: 50,
-    left: 16,
-    zIndex: 10,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginRight: 16,
+  },
+  headerTitle: {
+    color: "#F3F4F6",
+    fontSize: 20,
+    fontWeight: "bold",
+    flex: 1,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   searchBarContainer: {
     flexDirection: "row",
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "#374151",
-    paddingHorizontal: 12,
-    marginTop: 70,
     alignItems: "center",
     backgroundColor: "#1F2937",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#374151",
+    paddingHorizontal: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  searchIcon: {
+    marginRight: 12,
   },
   searchInput: {
     flex: 1,
-    color: "white",
+    color: "#F3F4F6",
     fontSize: 16,
-    paddingVertical: 10,
-    paddingLeft: 8,
+    paddingVertical: 16,
+    fontWeight: "500",
   },
   clearButton: {
-    backgroundColor: "#EC4899",
-    borderRadius: 20,
     padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#EC4899",
+    marginLeft: 8,
   },
-  resultsText: {
-    color: "white",
+  voiceButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginLeft: 8,
+  },
+  content: {
+    flex: 1,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    color: "#F3F4F6",
     fontSize: 18,
     fontWeight: "bold",
-    marginVertical: 16,
   },
-  movieGrid: {
+  sectionSubtitle: {
+    color: "#9CA3AF",
+    fontSize: 14,
+    marginTop: 2,
+  },
+  clearHistoryButton: {
+    backgroundColor: "rgba(239, 68, 68, 0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  clearHistoryText: {
+    color: "#EF4444",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  historyItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1F2937",
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+  historyText: {
+    color: "#F3F4F6",
+    fontSize: 16,
+    flex: 1,
+    marginLeft: 12,
+  },
+  historyTime: {
+    color: "#9CA3AF",
+    fontSize: 12,
+  },
+  removeHistoryButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  genresContainer: {
+    paddingHorizontal: 16,
+  },
+  genresGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    gap: 12,
+  },
+  genreButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1F2937",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+  genreEmoji: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  genreText: {
+    color: "#F3F4F6",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  resultsHeader: {
+    flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+  },
+  resultsCount: {
+    color: "#F3F4F6",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  resultsSubtext: {
+    color: "#9CA3AF",
+    fontSize: 14,
+    marginTop: 2,
+  },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1F2937",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+  filterText: {
+    color: "#F3F4F6",
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  movieGrid: {
+    paddingHorizontal: 8,
   },
   movieItem: {
-    width: (width - 72) / 2,
-    marginBottom: 20,
+    width: (width - 48) / 2,
+    marginHorizontal: 8,
+    marginBottom: 24,
+    backgroundColor: "#1F2937",
+    borderRadius: 16,
+    overflow: "hidden",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   moviePoster: {
     width: "100%",
-    height: height * 0.3,
-    borderRadius: 12,
+    height: height * 0.28,
+    resizeMode: "cover",
+  },
+  movieInfo: {
+    padding: 12,
   },
   movieTitle: {
-    color: "white",
+    color: "#F3F4F6",
     fontSize: 14,
-    marginTop: 8,
+    fontWeight: "600",
+    marginBottom: 4,
+    numberOfLines: 2,
   },
-  noResultsContainer: {
+  movieYear: {
+    color: "#9CA3AF",
+    fontSize: 12,
+  },
+  movieRating: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  ratingText: {
+    color: "#F59E0B",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 100,
+    paddingTop: 100,
   },
-  noResultsImage: {
-    width: width * 0.5,
-    height: height * 0.3,
-    opacity: 0.5,
-  },
-  noResultsText: {
-    color: "#6B7280",
+  loadingText: {
+    color: "#9CA3AF",
     fontSize: 16,
     marginTop: 16,
   },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+    paddingTop: 60,
+  },
+  emptyStateIcon: {
+    marginBottom: 24,
+    padding: 20,
+    borderRadius: 50,
+    backgroundColor: "rgba(156, 163, 175, 0.1)",
+  },
+  emptyStateTitle: {
+    color: "#F3F4F6",
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    color: "#9CA3AF",
+    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+    paddingTop: 60,
+  },
+  errorIcon: {
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 50,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  errorSubtext: {
+    color: "#9CA3AF",
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  retryButton: {
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  retryGradient: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
 });
+
+export default function SearchScreen() {
+  const navigation = useNavigation();
+  const [query, setQuery] = useState("");
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(true);
+
+  const user = useUserStore((state) => state.user);
+  const currentProfile = user?.currentProfileId;
+
+  // Hook de busca
+  const { data: searchResults, isLoading, error, refetch } = useSearchMovies(query);
+
+  // Carregar histórico de pesquisa
+  useEffect(() => {
+    loadSearchHistory();
+  }, []);
+
+  const loadSearchHistory = async () => {
+    try {
+      const historyJson = await AsyncStorage.getItem(SEARCH_HISTORY_KEY);
+      if (historyJson) {
+        const history: SearchHistoryItem[] = JSON.parse(historyJson);
+        setSearchHistory(history.slice(0, MAX_HISTORY_ITEMS));
+      }
+    } catch (error) {
+      console.error("Erro ao carregar histórico:", error);
+    }
+  };
+
+  const saveSearchToHistory = async (searchQuery: string) => {
+    if (!searchQuery.trim() || searchQuery.length < 3) return;
+
+    try {
+      const newItem: SearchHistoryItem = {
+        query: searchQuery.trim(),
+        timestamp: Date.now(),
+      };
+
+      // Remover duplicatas e adicionar novo item
+      const updatedHistory = [
+        newItem,
+        ...searchHistory.filter(item => item.query !== searchQuery.trim())
+      ].slice(0, MAX_HISTORY_ITEMS);
+
+      setSearchHistory(updatedHistory);
+      await AsyncStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(updatedHistory));
+    } catch (error) {
+      console.error("Erro ao salvar histórico:", error);
+    }
+  };
+
+  const clearSearchHistory = async () => {
+    try {
+      await AsyncStorage.removeItem(SEARCH_HISTORY_KEY);
+      setSearchHistory([]);
+      Toast.show({
+        type: "success",
+        text1: "Histórico limpo",
+        text2: "Todas as pesquisas anteriores foram removidas"
+      });
+    } catch (error) {
+      console.error("Erro ao limpar histórico:", error);
+    }
+  };
+
+  const removeHistoryItem = async (queryToRemove: string) => {
+    try {
+      const updatedHistory = searchHistory.filter(item => item.query !== queryToRemove);
+      setSearchHistory(updatedHistory);
+      await AsyncStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(updatedHistory));
+    } catch (error) {
+      console.error("Erro ao remover item do histórico:", error);
+    }
+  };
+
+  const handleSearch = useCallback(
+    debounce((searchQuery: string) => {
+      if (searchQuery.trim().length >= 3) {
+        setQuery(searchQuery);
+        setShowHistory(false);
+        saveSearchToHistory(searchQuery);
+      } else if (searchQuery.trim().length === 0) {
+        setQuery("");
+        setShowHistory(true);
+      }
+    }, 500),
+    [searchHistory]
+  );
+
+  const handleHistoryItemPress = (historyQuery: string) => {
+    setQuery(historyQuery);
+    setShowHistory(false);
+    saveSearchToHistory(historyQuery);
+  };
+
+  const handleGenrePress = (genre: PopularGenre) => {
+    const genreQuery = `gênero:${genre.name}`;
+    setQuery(genreQuery);
+    setShowHistory(false);
+    saveSearchToHistory(genreQuery);
+  };
+
+  const handleClearSearch = () => {
+    setQuery("");
+    setShowHistory(true);
+  };
+
+  const handleMoviePress = (movie: any) => {
+    navigation.navigate("Movie");
+  };
+
+  const formatTimeAgo = (timestamp: number) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d atrás`;
+    if (hours > 0) return `${hours}h atrás`;
+    return "Agora";
+  };
+
+  const renderMovieItem = ({ item, index }: { item: any; index: number }) => (
+    <TouchableWithoutFeedback onPress={() => handleMoviePress(item)}>
+      <View style={styles.movieItem}>
+        <Image
+          source={{
+            uri: item.poster_path ? image185(item.poster_path) : fallBackMoviePoster,
+          }}
+          style={styles.moviePoster}
+        />
+        <View style={styles.movieInfo}>
+          <Text style={styles.movieTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+          {item.release_date && (
+            <Text style={styles.movieYear}>
+              {new Date(item.release_date).getFullYear()}
+            </Text>
+          )}
+          {item.vote_average > 0 && (
+            <View style={styles.movieRating}>
+              <Ionicons name="star" size={12} color="#F59E0B" />
+              <Text style={styles.ratingText}>
+                {item.vote_average.toFixed(1)}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </TouchableWithoutFeedback>
+  );
+
+  const showResults = query.length >= 3 && !showHistory;
+  const hasResults = searchResults?.results?.length > 0;
+
+  return (
+    <AppLayout>
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#F3F4F6" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Buscar Filmes</Text>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBarContainer}>
+            <Ionicons name="search-outline" size={20} color="#9CA3AF" style={styles.searchIcon} />
+            <TextInput
+              placeholder="Pesquisar filmes, atores, gêneros..."
+              placeholderTextColor="#6B7280"
+              style={styles.searchInput}
+              onChangeText={handleSearch}
+              autoCapitalize="none"
+              returnKeyType="search"
+              autoFocus
+            />
+            {query.length > 0 && (
+              <TouchableOpacity style={styles.clearButton} onPress={handleClearSearch}>
+                <Ionicons name="close" size={16} color="white" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.voiceButton}>
+              <Ionicons name="mic-outline" size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {showHistory ? (
+            <>
+              {/* Histórico de Pesquisa */}
+              {searchHistory.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View>
+                      <Text style={styles.sectionTitle}>🕒 Pesquisas Recentes</Text>
+                      <Text style={styles.sectionSubtitle}>Suas últimas buscas</Text>
+                    </View>
+                    <TouchableOpacity style={styles.clearHistoryButton} onPress={clearSearchHistory}>
+                      <Text style={styles.clearHistoryText}>Limpar</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {searchHistory.map((item, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.historyItem}
+                      onPress={() => handleHistoryItemPress(item.query)}
+                    >
+                      <Ionicons name="time-outline" size={16} color="#9CA3AF" />
+                      <Text style={styles.historyText}>{item.query}</Text>
+                      <Text style={styles.historyTime}>{formatTimeAgo(item.timestamp)}</Text>
+                      <TouchableOpacity
+                        style={styles.removeHistoryButton}
+                        onPress={() => removeHistoryItem(item.query)}
+                      >
+                        <Ionicons name="close" size={16} color="#6B7280" />
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* Gêneros Populares */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View>
+                    <Text style={styles.sectionTitle}>🎬 Explorar Gêneros</Text>
+                    <Text style={styles.sectionSubtitle}>Descubra por categoria</Text>
+                  </View>
+                </View>
+
+                <View style={styles.genresContainer}>
+                  <View style={styles.genresGrid}>
+                    {POPULAR_GENRES.map((genre) => (
+                      <TouchableOpacity
+                        key={genre.id}
+                        style={styles.genreButton}
+                        onPress={() => handleGenrePress(genre)}
+                      >
+                        <Text style={styles.genreEmoji}>{genre.emoji}</Text>
+                        <Text style={styles.genreText}>{genre.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            </>
+          ) : showResults ? (
+            <>
+              {/* Header dos Resultados */}
+              <View style={styles.resultsHeader}>
+                <View>
+                  <Text style={styles.resultsCount}>
+                    {searchResults?.total_results || 0} resultados
+                  </Text>
+                  <Text style={styles.resultsSubtext}>para "{query}"</Text>
+                </View>
+                <TouchableOpacity style={styles.filterButton}>
+                  <Ionicons name="filter-outline" size={16} color="#9CA3AF" />
+                  <Text style={styles.filterText}>Filtros</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Resultados */}
+              {isLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#EC4899" />
+                  <Text style={styles.loadingText}>Buscando filmes...</Text>
+                </View>
+              ) : error ? (
+                <View style={styles.errorContainer}>
+                  <View style={styles.errorIcon}>
+                    <Ionicons name="warning-outline" size={48} color="#EF4444" />
+                  </View>
+                  <Text style={styles.errorText}>Erro na busca</Text>
+                  <Text style={styles.errorSubtext}>
+                    Não conseguimos realizar a pesquisa.{'\n'}Tente novamente.
+                  </Text>
+                  <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+                    <LinearGradient
+                      colors={["#EC4899", "#D946EF"]}
+                      style={styles.retryGradient}
+                    >
+                      <Ionicons name="refresh-outline" size={16} color="#fff" />
+                      <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              ) : hasResults ? (
+                <FlatList
+                  data={searchResults.results}
+                  renderItem={renderMovieItem}
+                  keyExtractor={(item, index) => `${item.id}-${index}`}
+                  numColumns={2}
+                  style={styles.movieGrid}
+                  scrollEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                />
+              ) : (
+                <View style={styles.emptyState}>
+                  <View style={styles.emptyStateIcon}>
+                    <Ionicons name="search-outline" size={48} color="#9CA3AF" />
+                  </View>
+                  <Text style={styles.emptyStateTitle}>Nenhum resultado</Text>
+                  <Text style={styles.emptyStateText}>
+                    Não encontramos filmes para "{query}".{'\n'}
+                    Tente pesquisar com outras palavras.
+                  </Text>
+                </View>
+              )}
+            </>
+          ) : null}
+        </ScrollView>
+      </SafeAreaView>
+    </AppLayout>
+  );
+}

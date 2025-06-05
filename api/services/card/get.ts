@@ -1,5 +1,5 @@
-import axios from "axios";
 import { BACKEND_URL } from "@env";
+import { api } from "../../../utils/axios";
 
 export type CardData = {
     id: string;
@@ -12,7 +12,7 @@ export type CardData = {
 
 export const getCardByUserId = async (userId: string): Promise<CardData> => {
     try {
-        const response = await axios.get<CardData>(`${BACKEND_URL}/cards/user/${userId}`);
+        const response = await api.get<CardData>(`/cards/user/${userId}`);
         return response.data;
     } catch (error: any) {
         const message =

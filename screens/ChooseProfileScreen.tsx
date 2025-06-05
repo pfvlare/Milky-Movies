@@ -10,12 +10,14 @@ import {
     SafeAreaView,
     ActivityIndicator,
     Alert,
+    ScrollView,
 } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import { useNavigation } from "@react-navigation/native";
 import { useUserStore } from "../store/userStore";
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
+import { LinearGradient } from "expo-linear-gradient";
 import {
     useCreateProfile,
     useEditProfile,
@@ -64,13 +66,24 @@ export default function ChooseProfileScreen() {
     const [selectedColor, setSelectedColor] = useState(profileColors[0]);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-    // Usar os limites do backend se disponível, senão fallback para o user store
-    const maxProfiles = profileLimits?.maxProfiles || user?.subscription?.maxProfiles || 1;
+    const maxProfiles = profileLimits?.maxProfiles || 1;
     const currentProfilesCount = profileLimits?.currentProfiles || profiles.length;
     const canCreateMore = profileLimits?.canCreateMore ?? (profiles.length < maxProfiles);
+    const planName = profileLimits?.plan || 'none';
 
     const usedColors = profiles.map((p) => p.color);
     const availableColors = profileColors.filter((c) => !usedColors.includes(c));
+
+    // Função para mapear nome do plano
+    const getPlanDisplayName = (plan: string) => {
+        const planNames = {
+            'basic': 'Básico',
+            'intermediary': 'Padrão',
+            'complete': 'Premium',
+            'none': 'Gratuito'
+        };
+        return planNames[plan] || 'Desconhecido';
+    };
 
     // Efeito para definir cor inicial quando disponível
     useEffect(() => {
@@ -88,8 +101,12 @@ export default function ChooseProfileScreen() {
                 text1: "Erro: Usuário não identificado",
                 text2: "Faça login novamente"
             });
+            // Redirecionar para login após um tempo
+            setTimeout(() => {
+                navigation.reset({ index: 0, routes: [{ name: "Welcome" as never }] });
+            }, 2000);
         }
-    }, [user?.id]);
+    }, [user?.id, navigation]);
 
     const handleSelectProfile = (id: string) => {
         if (editMode) return;
@@ -117,7 +134,8 @@ export default function ChooseProfileScreen() {
         if (!canCreateMore) {
             Toast.show({
                 type: "error",
-                text1: `Você pode ter no máximo ${maxProfiles} perfis com seu plano atual`
+                text1: `Você pode ter no máximo ${maxProfiles} perfis`,
+                text2: `Plano atual: ${getPlanDisplayName(planName)}`
             });
             return;
         }
@@ -128,7 +146,11 @@ export default function ChooseProfileScreen() {
                 color: selectedColor,
                 userId: user.id
             });
-            Toast.show({ type: "success", text1: "Perfil criado com sucesso!" });
+            Toast.show({
+                type: "success",
+                text1: "Perfil criado com sucesso!",
+                text2: `"${newName.trim()}" foi adicionado`
+            });
             setShowModal(false);
             resetModal();
             await refetch();
@@ -137,7 +159,11 @@ export default function ChooseProfileScreen() {
             const errorMessage = error?.response?.data?.message ||
                 error?.message ||
                 "Erro ao criar perfil";
-            Toast.show({ type: "error", text1: errorMessage });
+            Toast.show({
+                type: "error",
+                text1: "Erro ao criar perfil",
+                text2: errorMessage
+            });
         }
     };
 
@@ -162,7 +188,11 @@ export default function ChooseProfileScreen() {
                 name: newName.trim(),
                 color: selectedColor
             });
-            Toast.show({ type: "success", text1: "Perfil atualizado!" });
+            Toast.show({
+                type: "success",
+                text1: "Perfil atualizado!",
+                text2: `"${newName.trim()}" foi salvo`
+            });
             setShowModal(false);
             resetModal();
             await refetch();
@@ -171,7 +201,11 @@ export default function ChooseProfileScreen() {
             const errorMessage = error?.response?.data?.message ||
                 error?.message ||
                 "Erro ao editar perfil";
-            Toast.show({ type: "error", text1: errorMessage });
+            Toast.show({
+                type: "error",
+                text1: "Erro ao editar perfil",
+                text2: errorMessage
+            });
         }
     };
 
@@ -179,7 +213,8 @@ export default function ChooseProfileScreen() {
         if (profiles.length === 1) {
             Toast.show({
                 type: "error",
-                text1: "Você precisa manter pelo menos 1 perfil."
+                text1: "Não é possível excluir",
+                text2: "Você precisa manter pelo menos 1 perfil."
             });
             return;
         }
@@ -197,12 +232,18 @@ export default function ChooseProfileScreen() {
                     onPress: async () => {
                         try {
                             await deleteProfile(profile.id);
-                            Toast.show({ type: "success", text1: "Perfil excluído!" });
+                            Toast.show({
+                                type: "success",
+                                text1: "Perfil excluído!",
+                                text2: `"${profile.name}" foi removido`
+                            });
 
                             // Se o perfil excluído era o ativo, definir outro como ativo
                             const remainingProfiles = profiles.filter((_, i) => i !== index);
-                            const newActive = remainingProfiles[0]?.id || null;
-                            setCurrentProfile(newActive);
+                            if (remainingProfiles.length > 0) {
+                                const newActive = remainingProfiles[0]?.id || null;
+                                setCurrentProfile(newActive);
+                            }
 
                             await refetch();
                         } catch (error: any) {
@@ -210,7 +251,11 @@ export default function ChooseProfileScreen() {
                             const errorMessage = error?.response?.data?.message ||
                                 error?.message ||
                                 "Erro ao excluir perfil";
-                            Toast.show({ type: "error", text1: errorMessage });
+                            Toast.show({
+                                type: "error",
+                                text1: "Erro ao excluir perfil",
+                                text2: errorMessage
+                            });
                         }
                     }
                 }
@@ -230,7 +275,8 @@ export default function ChooseProfileScreen() {
         if (!canCreateMore) {
             Toast.show({
                 type: "error",
-                text1: `Você já atingiu o limite de ${maxProfiles} perfis`
+                text1: `Limite de perfis atingido`,
+                text2: `Plano ${getPlanDisplayName(planName)}: ${maxProfiles} perfil${maxProfiles > 1 ? 's' : ''}`
             });
             return;
         }
@@ -250,12 +296,20 @@ export default function ChooseProfileScreen() {
         resetModal();
     };
 
+    // Função para navegar para upgrade de plano
+    const handleUpgradePlan = () => {
+        setShowModal(false);
+        navigation.navigate("ChangePlan" as never);
+    };
+
     // Loading state
     if (isLoadingProfiles || isLoadingLimits) {
         return (
             <SafeAreaView style={styles.container}>
-                <ActivityIndicator size="large" color="#EC4899" style={{ marginTop: 100 }} />
-                <Text style={styles.loadingText}>Carregando perfis...</Text>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#EC4899" />
+                    <Text style={styles.loadingText}>Carregando perfis...</Text>
+                </View>
             </SafeAreaView>
         );
     }
@@ -265,6 +319,7 @@ export default function ChooseProfileScreen() {
         return (
             <SafeAreaView style={styles.container}>
                 <View style={styles.errorContainer}>
+                    <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
                     <Text style={styles.errorText}>Erro ao carregar perfis</Text>
                     <Text style={styles.errorSubtext}>
                         {profilesError?.response?.data?.message ||
@@ -273,7 +328,15 @@ export default function ChooseProfileScreen() {
                     </Text>
 
                     <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-                        <Text style={styles.retryButtonText}>Tentar novamente</Text>
+                        <LinearGradient
+                            colors={["#EC4899", "#D946EF"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.retryGradient}
+                        >
+                            <Ionicons name="refresh" size={20} color="#fff" />
+                            <Text style={styles.retryButtonText}>Tentar novamente</Text>
+                        </LinearGradient>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -282,125 +345,206 @@ export default function ChooseProfileScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <Text style={styles.title}>Quem Está Assistindo?</Text>
-
-            {/* Indicador de limite de perfis */}
-            <Text style={styles.limitText}>
-                {currentProfilesCount} de {maxProfiles} perfis utilizados
-            </Text>
-
-            {profiles.length > 0 ? (
-                <View style={{ height: 240 }}>
-                    <Carousel
-                        width={140}
-                        height={160}
-                        loop={false}
-                        autoPlay={false}
-                        data={profiles}
-                        scrollAnimationDuration={400}
-                        renderItem={({ index }) => {
-                            const profile = profiles[index];
-                            const initials = profile.name
-                                .split(" ")
-                                .map(p => p[0])
-                                .join("")
-                                .toUpperCase()
-                                .slice(0, 2); // Máximo 2 iniciais
-
-                            return (
-                                <View key={profile.id} style={styles.profileItem}>
-                                    <TouchableOpacity
-                                        onPress={() => handleSelectProfile(profile.id)}
-                                        style={styles.profileTouchable}
-                                        disabled={editMode}
-                                    >
-                                        <View style={[
-                                            styles.avatar,
-                                            { backgroundColor: profile.color },
-                                            editMode && styles.avatarEditMode
-                                        ]}>
-                                            <Text style={styles.avatarText}>{initials}</Text>
-                                        </View>
-                                        <Text style={styles.profileName}>{profile.name}</Text>
-                                    </TouchableOpacity>
-
-                                    {editMode && (
-                                        <View style={styles.iconsRow}>
-                                            <TouchableOpacity
-                                                onPress={() => openEditModal(index)}
-                                                disabled={isEditing}
-                                            >
-                                                <Ionicons name="pencil" size={20} color="#EC4899" />
-                                            </TouchableOpacity>
-                                            {profiles.length > 1 && (
-                                                <TouchableOpacity
-                                                    onPress={() => handleDelete(index)}
-                                                    disabled={isDeleting}
-                                                    style={{ marginLeft: 8 }}
-                                                >
-                                                    <Ionicons
-                                                        name="trash"
-                                                        size={20}
-                                                        color="#EF4444"
-                                                    />
-                                                </TouchableOpacity>
-                                            )}
-                                        </View>
-                                    )}
-                                </View>
-                            );
-                        }}
-                    />
-                </View>
-            ) : (
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>Nenhum perfil encontrado</Text>
-                    <Text style={styles.emptySubtext}>Crie seu primeiro perfil para começar</Text>
-
-                    {/* Botão para criar primeiro perfil quando não há nenhum */}
-                    <TouchableOpacity
-                        style={[styles.editToggle, { marginTop: 20 }]}
-                        onPress={openAddModal}
-                        disabled={isCreating}
-                    >
-                        {isCreating ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                            <Text style={styles.editText}>Criar Primeiro Perfil</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            {/* Botão Adicionar Perfil */}
-            {!editMode && canCreateMore && profiles.length > 0 && (
-                <TouchableOpacity
-                    style={[styles.editToggle, !canCreateMore && styles.editToggleDisabled]}
-                    onPress={openAddModal}
-                    disabled={isCreating || !canCreateMore}
-                >
-                    {isCreating ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                        <Text style={styles.editText}>
-                            Adicionar Perfil ({currentProfilesCount}/{maxProfiles})
-                        </Text>
-                    )}
-                </TouchableOpacity>
-            )}
-
-            {/* Botão Editar */}
-            {profiles.length > 0 && (
-                <TouchableOpacity
-                    onPress={() => setEditMode(prev => !prev)}
-                    style={[styles.editToggle, { marginTop: 12 }]}
-                    disabled={isCreating || isEditing || isDeleting}
-                >
-                    <Text style={styles.editText}>
-                        {editMode ? "Concluir" : "Editar"}
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                {/* Header */}
+                <View style={styles.headerContainer}>
+                    <Text style={styles.title}>Quem Está Assistindo?</Text>
+                    <Text style={styles.subtitle}>
+                        <Text style={{ color: theme.text }}>M</Text>ilky{" "}
+                        <Text style={{ color: theme.text }}>M</Text>ovies
                     </Text>
-                </TouchableOpacity>
-            )}
+                </View>
+
+                {/* Indicador de limite de perfis */}
+                <View style={styles.limitContainer}>
+                    <View style={styles.limitInfo}>
+                        <Text style={styles.limitText}>
+                            {currentProfilesCount} de {maxProfiles} perfis utilizados
+                        </Text>
+                        <Text style={styles.planText}>
+                            Plano: {getPlanDisplayName(planName)}
+                        </Text>
+                    </View>
+
+                    {planName !== 'complete' && (
+                        <TouchableOpacity
+                            style={styles.upgradeButton}
+                            onPress={handleUpgradePlan}
+                        >
+                            <Ionicons name="arrow-up-circle-outline" size={16} color="#EC4899" />
+                            <Text style={styles.upgradeText}>Upgrade</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {profiles.length > 0 ? (
+                    <View style={styles.carouselContainer}>
+                        <Carousel
+                            width={140}
+                            height={180}
+                            loop={false}
+                            autoPlay={false}
+                            data={profiles}
+                            scrollAnimationDuration={400}
+                            renderItem={({ index }) => {
+                                const profile = profiles[index];
+                                const initials = profile.name
+                                    .split(" ")
+                                    .map(p => p[0])
+                                    .join("")
+                                    .toUpperCase()
+                                    .slice(0, 2);
+
+                                const isCurrentProfile = user?.currentProfileId === profile.id;
+
+                                return (
+                                    <View key={profile.id} style={styles.profileItem}>
+                                        <TouchableOpacity
+                                            onPress={() => handleSelectProfile(profile.id)}
+                                            style={[
+                                                styles.profileTouchable,
+                                                isCurrentProfile && styles.currentProfileTouchable
+                                            ]}
+                                            disabled={editMode}
+                                        >
+                                            <View style={[
+                                                styles.avatar,
+                                                { backgroundColor: profile.color },
+                                                editMode && styles.avatarEditMode,
+                                                isCurrentProfile && styles.currentAvatar
+                                            ]}>
+                                                <Text style={styles.avatarText}>{initials}</Text>
+                                                {isCurrentProfile && (
+                                                    <View style={styles.currentBadge}>
+                                                        <Ionicons name="checkmark" size={16} color="#fff" />
+                                                    </View>
+                                                )}
+                                            </View>
+                                            <Text style={[
+                                                styles.profileName,
+                                                isCurrentProfile && styles.currentProfileName
+                                            ]}>
+                                                {profile.name}
+                                            </Text>
+                                            {isCurrentProfile && (
+                                                <Text style={styles.currentLabel}>ATUAL</Text>
+                                            )}
+                                        </TouchableOpacity>
+
+                                        {editMode && (
+                                            <View style={styles.iconsRow}>
+                                                <TouchableOpacity
+                                                    onPress={() => openEditModal(index)}
+                                                    disabled={isEditing}
+                                                    style={styles.iconButton}
+                                                >
+                                                    <Ionicons name="pencil" size={18} color="#EC4899" />
+                                                </TouchableOpacity>
+                                                {profiles.length > 1 && (
+                                                    <TouchableOpacity
+                                                        onPress={() => handleDelete(index)}
+                                                        disabled={isDeleting}
+                                                        style={[styles.iconButton, { marginLeft: 8 }]}
+                                                    >
+                                                        <Ionicons
+                                                            name="trash"
+                                                            size={18}
+                                                            color="#EF4444"
+                                                        />
+                                                    </TouchableOpacity>
+                                                )}
+                                            </View>
+                                        )}
+                                    </View>
+                                );
+                            }}
+                        />
+                    </View>
+                ) : (
+                    <View style={styles.emptyState}>
+                        <Ionicons name="person-add-outline" size={64} color="#6B7280" />
+                        <Text style={styles.emptyText}>Nenhum perfil encontrado</Text>
+                        <Text style={styles.emptySubtext}>Crie seu primeiro perfil para começar a assistir</Text>
+
+                        <TouchableOpacity
+                            style={styles.createFirstButton}
+                            onPress={openAddModal}
+                            disabled={isCreating}
+                        >
+                            <LinearGradient
+                                colors={["#EC4899", "#D946EF"]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.createFirstGradient}
+                            >
+                                {isCreating ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <>
+                                        <Ionicons name="add" size={20} color="#fff" />
+                                        <Text style={styles.createFirstText}>Criar Primeiro Perfil</Text>
+                                    </>
+                                )}
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {/* Botões de ação */}
+                <View style={styles.actionsContainer}>
+                    {/* Botão Adicionar Perfil */}
+                    {!editMode && profiles.length > 0 && (
+                        <TouchableOpacity
+                            style={[styles.actionButton, !canCreateMore && styles.actionButtonDisabled]}
+                            onPress={openAddModal}
+                            disabled={isCreating || !canCreateMore}
+                        >
+                            <LinearGradient
+                                colors={canCreateMore ? ["#EC4899", "#D946EF"] : ["#6B7280", "#6B7280"]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.actionGradient}
+                            >
+                                {isCreating ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <>
+                                        <Ionicons name="add" size={20} color="#fff" />
+                                        <Text style={styles.actionText}>
+                                            Adicionar Perfil ({currentProfilesCount}/{maxProfiles})
+                                        </Text>
+                                    </>
+                                )}
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Botão Editar */}
+                    {profiles.length > 0 && (
+                        <TouchableOpacity
+                            onPress={() => setEditMode(prev => !prev)}
+                            style={[styles.actionButton, { marginTop: 12 }]}
+                            disabled={isCreating || isEditing || isDeleting}
+                        >
+                            <LinearGradient
+                                colors={editMode ? ["#6B7280", "#6B7280"] : ["#374151", "#4B5563"]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.actionGradient}
+                            >
+                                <Ionicons
+                                    name={editMode ? "checkmark" : "create-outline"}
+                                    size={20}
+                                    color="#fff"
+                                />
+                                <Text style={styles.actionText}>
+                                    {editMode ? "Concluir Edição" : "Gerenciar Perfis"}
+                                </Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </ScrollView>
 
             {/* Modal */}
             <Modal visible={showModal} transparent animationType="fade">
@@ -442,10 +586,17 @@ export default function ChooseProfileScreen() {
                             ))}
                         </View>
 
+                        {availableColors.length === 0 && editingIndex === null && (
+                            <Text style={styles.noColorsText}>
+                                Todas as cores estão em uso. Exclua um perfil para liberar cores.
+                            </Text>
+                        )}
+
                         <View style={styles.modalActions}>
                             <TouchableOpacity
                                 onPress={closeModal}
                                 disabled={isCreating || isEditing}
+                                style={styles.modalCancelButton}
                             >
                                 <Text style={[
                                     styles.cancelText,
@@ -458,17 +609,23 @@ export default function ChooseProfileScreen() {
                             <TouchableOpacity
                                 onPress={editingIndex !== null ? handleEditProfile : handleAddProfile}
                                 disabled={isCreating || isEditing || !newName.trim()}
+                                style={styles.modalConfirmButton}
                             >
-                                {(isCreating || isEditing) ? (
-                                    <ActivityIndicator size="small" color="#EC4899" />
-                                ) : (
-                                    <Text style={[
-                                        styles.confirmText,
-                                        !newName.trim() && styles.disabledText
-                                    ]}>
-                                        Salvar
-                                    </Text>
-                                )}
+                                <LinearGradient
+                                    colors={!newName.trim() || isCreating || isEditing
+                                        ? ["#6B7280", "#6B7280"]
+                                        : ["#EC4899", "#D946EF"]
+                                    }
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.confirmGradient}
+                                >
+                                    {(isCreating || isEditing) ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <Text style={styles.confirmText}>Salvar</Text>
+                                    )}
+                                </LinearGradient>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -478,25 +635,77 @@ export default function ChooseProfileScreen() {
     );
 }
 
+const theme = { text: "#EC4899" }; // Definição do tema
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#111827",
         paddingTop: Platform.OS === "ios" ? 50 : 30,
     },
+    scrollContent: {
+        flexGrow: 1,
+        paddingHorizontal: 24,
+        paddingBottom: 40,
+    },
+    headerContainer: {
+        alignItems: "center",
+        marginBottom: 24,
+    },
     title: {
         color: "#fff",
         fontSize: 28,
         fontWeight: "bold",
         letterSpacing: 1,
-        marginBottom: 16,
+        marginBottom: 8,
         textAlign: "center",
     },
+    subtitle: {
+        color: "#9CA3AF",
+        fontSize: 18,
+        fontWeight: "600",
+        letterSpacing: 0.5,
+    },
+    limitContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        backgroundColor: "#1F2937",
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 32,
+    },
+    limitInfo: {
+        flex: 1,
+    },
     limitText: {
+        color: "#F3F4F6",
+        fontSize: 16,
+        fontWeight: "600",
+        marginBottom: 4,
+    },
+    planText: {
         color: "#9CA3AF",
         fontSize: 14,
-        textAlign: "center",
-        marginBottom: 32,
+    },
+    upgradeButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#374151",
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+    },
+    upgradeText: {
+        color: "#EC4899",
+        fontSize: 14,
+        fontWeight: "600",
+        marginLeft: 4,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
     },
     loadingText: {
         color: "#9CA3AF",
@@ -514,6 +723,7 @@ const styles = StyleSheet.create({
         color: "#EF4444",
         fontSize: 18,
         fontWeight: "bold",
+        marginTop: 16,
         marginBottom: 8,
         textAlign: "center",
     },
@@ -521,34 +731,62 @@ const styles = StyleSheet.create({
         color: "#9CA3AF",
         fontSize: 14,
         textAlign: "center",
-        marginBottom: 16,
+        marginBottom: 24,
     },
     retryButton: {
-        backgroundColor: "#EC4899",
+        borderRadius: 12,
+    },
+    retryGradient: {
+        flexDirection: "row",
+        alignItems: "center",
         paddingVertical: 12,
         paddingHorizontal: 24,
-        borderRadius: 8,
+        borderRadius: 12,
     },
     retryButtonText: {
         color: "#fff",
         fontWeight: "bold",
         fontSize: 16,
+        marginLeft: 8,
+    },
+    carouselContainer: {
+        height: 200,
+        marginBottom: 24,
     },
     emptyState: {
         alignItems: "center",
         marginTop: 60,
+        marginBottom: 40,
         paddingHorizontal: 20,
     },
     emptyText: {
         color: "#fff",
         fontSize: 18,
         fontWeight: "bold",
+        marginTop: 16,
         marginBottom: 8,
     },
     emptySubtext: {
         color: "#9CA3AF",
         fontSize: 16,
         textAlign: "center",
+        marginBottom: 24,
+    },
+    createFirstButton: {
+        borderRadius: 12,
+    },
+    createFirstGradient: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 12,
+    },
+    createFirstText: {
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 16,
+        marginLeft: 8,
     },
     profileItem: {
         alignItems: "center",
@@ -559,6 +797,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
+    currentProfileTouchable: {
+        transform: [{ scale: 1.05 }],
+    },
     avatar: {
         width: 80,
         height: 80,
@@ -566,9 +807,27 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 8,
+        position: "relative",
+    },
+    currentAvatar: {
+        borderWidth: 3,
+        borderColor: "#10B981",
     },
     avatarEditMode: {
         opacity: 0.7,
+    },
+    currentBadge: {
+        position: "absolute",
+        bottom: -2,
+        right: -2,
+        backgroundColor: "#10B981",
+        borderRadius: 12,
+        width: 24,
+        height: 24,
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 2,
+        borderColor: "#111827",
     },
     avatarText: {
         color: "#fff",
@@ -582,35 +841,54 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "500",
         textAlign: "center",
+        marginBottom: 4,
+    },
+    currentProfileName: {
+        color: "#10B981",
+        fontWeight: "600",
+    },
+    currentLabel: {
+        color: "#10B981",
+        fontSize: 12,
+        fontWeight: "bold",
+        letterSpacing: 0.5,
     },
     iconsRow: {
         flexDirection: "row",
-        marginTop: 8,
+        marginTop: 12,
         justifyContent: "center",
     },
-    editToggle: {
-        marginTop: 24,
-        backgroundColor: "#EC4899",
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 10,
-        alignSelf: "center",
-        minWidth: 150,
-        alignItems: "center",
+    iconButton: {
+        backgroundColor: "#374151",
+        padding: 8,
+        borderRadius: 8,
     },
-    editToggleDisabled: {
-        backgroundColor: "#6B7280",
+    actionsContainer: {
+        marginTop: 16,
+    },
+    actionButton: {
+        borderRadius: 12,
+    },
+    actionButtonDisabled: {
         opacity: 0.6,
     },
-    editText: {
+    actionGradient: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 12,
+    },
+    actionText: {
         color: "#fff",
         fontWeight: "bold",
         fontSize: 16,
-        textAlign: "center",
+        marginLeft: 8,
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.6)",
+        backgroundColor: "rgba(0,0,0,0.7)",
         justifyContent: "center",
         alignItems: "center",
     },
@@ -618,67 +896,93 @@ const styles = StyleSheet.create({
         backgroundColor: "#1F2937",
         borderRadius: 16,
         padding: 24,
-        width: "85%",
+        width: "90%",
         maxWidth: 400,
     },
     modalTitle: {
         color: "#fff",
         fontSize: 20,
         fontWeight: "bold",
-        marginBottom: 16,
+        marginBottom: 20,
         textAlign: "center",
     },
     modalSubtitle: {
         color: "#fff",
-        fontSize: 14,
+        fontSize: 16,
         marginTop: 16,
-        marginBottom: 8,
+        marginBottom: 12,
+        fontWeight: "600",
     },
     input: {
         backgroundColor: "#374151",
         color: "#fff",
         borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
         fontSize: 16,
         marginBottom: 4,
+        borderWidth: 1,
+        borderColor: "#4B5563",
     },
     characterCount: {
         color: "#9CA3AF",
         fontSize: 12,
         textAlign: "right",
-        marginBottom: 8,
+        marginBottom: 16,
     },
     colorPicker: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 10,
+        gap: 12,
         marginTop: 8,
         justifyContent: "center",
     },
     colorOption: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         borderWidth: 2,
         borderColor: "transparent",
     },
     selectedColor: {
         borderColor: "#F9FAFB",
         borderWidth: 3,
+        transform: [{ scale: 1.1 }],
+    },
+    noColorsText: {
+        color: "#EF4444",
+        fontSize: 14,
+        textAlign: "center",
+        marginTop: 8,
+        fontStyle: "italic",
     },
     modalActions: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginTop: 24,
+        marginTop: 32,
+        alignItems: "center",
+    },
+    modalCancelButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+    modalConfirmButton: {
+        borderRadius: 8,
+    },
+    confirmGradient: {
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+        minWidth: 80,
         alignItems: "center",
     },
     cancelText: {
         color: "#9CA3AF",
         fontSize: 16,
+        fontWeight: "500",
     },
     confirmText: {
-        color: "#EC4899",
+        color: "#fff",
         fontWeight: "bold",
         fontSize: 16,
     },
