@@ -19,10 +19,11 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import * as themeConfig from "../theme";
 import { RegisterSchema, RegisterType } from "../schemas/register";
+import { UpdateUserSchema, UpdateUserType } from "../schemas/updateUser";
 import { RootStackParamList } from "../Navigation/NavigationTypes";
 import { useUserStore } from "../store/userStore";
 import { AxiosError } from "axios";
-import { useRegister } from "../hooks/useAuth";
+import { useRegister, useUpdateUser } from "../hooks/useAuth";
 import Loading from "../components/loading";
 
 const theme = themeConfig.theme;
@@ -33,23 +34,35 @@ export default function RegisterScreen({ navigation, route }: Props) {
   const selectedPlan = route.params?.selectedPlan;
   const userToEdit = route.params?.userToEdit;
 
+  const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Hooks de mutação
+  const { mutateAsync: registerUser } = useRegister();
+  const { mutateAsync: updateUser, isPending: isUpdating } = useUpdateUser();
+
+  // Configurar formulário baseado no modo (registro ou edição)
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<RegisterType>({
+  } = useForm({
     mode: "onChange",
-    resolver: zodResolver(RegisterSchema),
-    defaultValues: {
-      firstname: userToEdit?.firstname || "",
-      lastname: userToEdit?.lastname || "",
-      email: userToEdit?.email || "",
-      phone: userToEdit?.phone || "",
-      address: userToEdit?.address || "",
+    resolver: zodResolver(userToEdit ? UpdateUserSchema : RegisterSchema),
+    defaultValues: userToEdit ? {
+      firstname: userToEdit.firstname || "",
+      lastname: userToEdit.lastname || "",
+      email: userToEdit.email || "",
+      phone: userToEdit.phone || "",
+      address: userToEdit.address || "",
+    } : {
+      firstname: "",
+      lastname: "",
+      email: "",
+      phone: "",
+      address: "",
       password: "",
       subscription: {
         plan: (selectedPlan?.code || "") as "basic" | "intermediary" | "complete",
@@ -58,45 +71,81 @@ export default function RegisterScreen({ navigation, route }: Props) {
     },
   });
 
-  const { mutateAsync } = useRegister();
-
-  const onSubmit = async (data: RegisterType) => {
+  const onSubmit = async (data: RegisterType | UpdateUserType) => {
     try {
       setIsLoading(true);
-      console.log("📤 Enviando registro:", data);
 
       if (userToEdit) {
-        const updatedUser = { ...userToEdit, ...data };
-        setUser(updatedUser);
-        await AsyncStorage.setItem("@user", JSON.stringify(updatedUser));
-        Toast.show({ type: "success", text1: "Dados atualizados com sucesso!" });
+        // Modo de edição
+        console.log("✏️ Editando usuário:", { id: userToEdit.id, data });
+
+        const updatedUserData = await updateUser({
+          id: userToEdit.id,
+          data: data as UpdateUserType
+        });
+
+        console.log("✅ Usuário atualizado:", updatedUserData);
+
+        // Atualizar estado global do usuário
+        const newUserState = {
+          ...user,
+          ...updatedUserData,
+          currentProfileId: user?.currentProfileId // Manter perfil atual
+        };
+
+        setUser(newUserState);
+
+        // Atualizar AsyncStorage
+        await AsyncStorage.setItem("@user", JSON.stringify(newUserState));
+
+        Toast.show({
+          type: "success",
+          text1: "Perfil atualizado!",
+          text2: "Suas informações foram salvas com sucesso"
+        });
+
         navigation.goBack();
         return;
       }
 
-      const user = await mutateAsync(data);
+      // Modo de registro
+      console.log("📤 Registrando novo usuário:", data);
 
-      if (!user?.id) {
-        throw new Error("Usuário inválido.");
+      const newUser = await registerUser(data as RegisterType);
+
+      if (!newUser?.id) {
+        throw new Error("Usuário inválido retornado da API");
       }
 
-      await AsyncStorage.setItem("@user", JSON.stringify(user));
-      setUser(user);
+      await AsyncStorage.setItem("@user", JSON.stringify(newUser));
+      setUser(newUser);
 
-      Toast.show({ type: "success", text1: "Usuário registrado com sucesso!" });
-      navigation.replace("Subscription", { userId: user.id });
+      Toast.show({
+        type: "success",
+        text1: "Usuário registrado!",
+        text2: "Conta criada com sucesso"
+      });
+
+      navigation.replace("Subscription", { userId: newUser.id });
 
     } catch (error: unknown) {
-      const err = error as AxiosError<{ message: string }>;
-      const message = err.response?.data?.message || "Erro inesperado";
+      console.error("❌ Erro na operação:", error);
+
+      const err = error as AxiosError<{ message: string | string[] }>;
+      let errorMessage = "Erro inesperado";
+
+      if (err.response?.data?.message) {
+        const message = err.response.data.message;
+        errorMessage = Array.isArray(message) ? message[0] : message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
 
       Toast.show({
         type: "error",
-        text1: "Erro ao registrar",
-        text2: Array.isArray(message) ? message[0] : message,
+        text1: userToEdit ? "Erro ao atualizar" : "Erro ao registrar",
+        text2: errorMessage,
       });
-
-      console.error("❌ Erro no registro:", error);
     } finally {
       setIsLoading(false);
     }
@@ -110,6 +159,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
     { name: "address", placeholder: "Endereço" },
   ] as const;
 
+  // Validação para modo de registro
   if (!userToEdit && !selectedPlan) {
     return (
       <SafeAreaView style={styles.container}>
@@ -127,6 +177,8 @@ export default function RegisterScreen({ navigation, route }: Props) {
       </SafeAreaView>
     );
   }
+
+  const currentIsLoading = isLoading || isUpdating;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -150,7 +202,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
           </Text>
         </View>
 
-        {!userToEdit && (
+        {!userToEdit && selectedPlan && (
           <View style={styles.selectedPlanBox}>
             <Text style={styles.planLabel}>Plano Selecionado</Text>
             <Text style={styles.planName}>
@@ -174,6 +226,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
                     maxLength={field.maxLength}
                     onChangeText={onChange}
                     value={value}
+                    editable={!currentIsLoading}
                   />
                 </View>
               )}
@@ -200,6 +253,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
                     maxLength={6}
                     onChangeText={onChange}
                     value={value}
+                    editable={!currentIsLoading}
                   />
                   <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
                     <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color="#9CA3AF" />
@@ -213,18 +267,30 @@ export default function RegisterScreen({ navigation, route }: Props) {
           </View>
         )}
 
-        <LinearGradient
-          colors={["#EC4899", "#D946EF"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientButton}
+        <TouchableOpacity
+          onPress={handleSubmit(onSubmit)}
+          disabled={currentIsLoading}
+          style={[styles.gradientButtonContainer, currentIsLoading && styles.disabledButton]}
         >
-          <TouchableOpacity onPress={handleSubmit(onSubmit)}>
-            <Text style={styles.registerButtonText}>
-              {userToEdit ? "Salvar Alterações" : "Continuar"}
-            </Text>
-          </TouchableOpacity>
-        </LinearGradient>
+          <LinearGradient
+            colors={currentIsLoading ? ["#6B7280", "#6B7280"] : ["#EC4899", "#D946EF"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradientButton}
+          >
+            {currentIsLoading ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.registerButtonText}>
+                  {userToEdit ? "Salvando..." : "Registrando..."}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.registerButtonText}>
+                {userToEdit ? "Salvar Alterações" : "Continuar"}
+              </Text>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
 
         {!userToEdit && (
           <TouchableOpacity onPress={() => navigation.navigate("Login")}>
@@ -235,7 +301,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
         )}
       </ScrollView>
 
-      {isLoading && <Loading />}
+      {currentIsLoading && <Loading />}
     </SafeAreaView>
   );
 }
@@ -281,13 +347,25 @@ const styles = StyleSheet.create({
     color: "#F44336",
     marginBottom: 8,
     marginHorizontal: 18,
+    fontSize: 14,
+  },
+  gradientButtonContainer: {
+    borderRadius: 12,
+    marginBottom: 16,
+    marginHorizontal: 18,
   },
   gradientButton: {
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
-    marginBottom: 16,
-    marginHorizontal: 18,
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   registerButtonText: {
     color: "white",

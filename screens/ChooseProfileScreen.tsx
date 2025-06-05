@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -11,9 +11,11 @@ import {
     ActivityIndicator,
     Alert,
     ScrollView,
+    RefreshControl,
+    Dimensions,
 } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useUserStore } from "../store/userStore";
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
@@ -26,7 +28,20 @@ import {
     useProfileLimits,
 } from "../hooks/useProfiles";
 
-const profileColors = ["#EC4899", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EF4444"];
+const { width } = Dimensions.get("window");
+
+const profileColors = [
+    "#EC4899", // Rosa
+    "#3B82F6", // Azul
+    "#10B981", // Verde
+    "#F59E0B", // Amarelo
+    "#8B5CF6", // Roxo
+    "#EF4444", // Vermelho
+    "#06B6D4", // Ciano
+    "#84CC16", // Lima
+    "#F97316", // Laranja
+    "#6366F1", // Índigo
+];
 
 export default function ChooseProfileScreen() {
     const navigation = useNavigation();
@@ -47,7 +62,7 @@ export default function ChooseProfileScreen() {
     } = useDeleteProfile();
     const {
         data: profiles = [],
-        refetch,
+        refetch: refetchProfiles,
         isFetching,
         isLoading: isLoadingProfiles,
         error: profilesError,
@@ -56,6 +71,7 @@ export default function ChooseProfileScreen() {
     const {
         data: profileLimits,
         isLoading: isLoadingLimits,
+        refetch: refetchLimits,
         error: limitsError,
         isError: hasLimitsError,
     } = useProfileLimits(user?.id);
@@ -65,14 +81,27 @@ export default function ChooseProfileScreen() {
     const [newName, setNewName] = useState("");
     const [selectedColor, setSelectedColor] = useState(profileColors[0]);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
 
     const maxProfiles = profileLimits?.maxProfiles || 1;
     const currentProfilesCount = profileLimits?.currentProfiles || profiles.length;
     const canCreateMore = profileLimits?.canCreateMore ?? (profiles.length < maxProfiles);
     const planName = profileLimits?.plan || 'none';
 
+    // Calcular cores disponíveis
     const usedColors = profiles.map((p) => p.color);
     const availableColors = profileColors.filter((c) => !usedColors.includes(c));
+
+    // Debug dos perfis
+    useEffect(() => {
+        console.log('🔍 [DEBUG] Profiles state:', {
+            profilesLength: profiles.length,
+            profiles: profiles.map(p => ({ id: p.id, name: p.name, color: p.color })),
+            currentProfileId: user?.currentProfileId,
+            isLoading: isLoadingProfiles,
+            hasError: hasProfilesError
+        });
+    }, [profiles, user?.currentProfileId, isLoadingProfiles, hasProfilesError]);
 
     // Função para mapear nome do plano
     const getPlanDisplayName = (plan: string) => {
@@ -85,12 +114,29 @@ export default function ChooseProfileScreen() {
         return planNames[plan] || 'Desconhecido';
     };
 
-    // Efeito para definir cor inicial quando disponível
+    // Atualizar dados quando a tela ganhar foco
+    useFocusEffect(
+        useCallback(() => {
+            if (user?.id) {
+                console.log('🔄 Atualizando dados de perfis...');
+                refetchProfiles();
+                refetchLimits();
+            }
+        }, [user?.id, refetchProfiles, refetchLimits])
+    );
+
+    // Configurar cor inicial baseada nas cores disponíveis
     useEffect(() => {
-        if (availableColors.length > 0 && !editingIndex) {
-            setSelectedColor(availableColors[0]);
+        if (showModal && editingIndex === null) {
+            // Para novo perfil, usar primeira cor disponível
+            if (availableColors.length > 0) {
+                setSelectedColor(availableColors[0]);
+            } else {
+                // Se não há cores disponíveis, usar a primeira da lista
+                setSelectedColor(profileColors[0]);
+            }
         }
-    }, [availableColors, editingIndex]);
+    }, [showModal, editingIndex, availableColors]);
 
     // Verificar se o usuário tem ID
     useEffect(() => {
@@ -101,35 +147,89 @@ export default function ChooseProfileScreen() {
                 text1: "Erro: Usuário não identificado",
                 text2: "Faça login novamente"
             });
-            // Redirecionar para login após um tempo
             setTimeout(() => {
                 navigation.reset({ index: 0, routes: [{ name: "Welcome" as never }] });
             }, 2000);
         }
     }, [user?.id, navigation]);
 
-    const handleSelectProfile = (id: string) => {
-        if (editMode) return;
-        setCurrentProfile(id);
-        navigation.reset({ index: 0, routes: [{ name: "Home" as never }] });
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await Promise.all([
+                refetchProfiles(),
+                refetchLimits()
+            ]);
+            Toast.show({
+                type: "success",
+                text1: "Perfis atualizados",
+                text2: "Lista de perfis foi atualizada"
+            });
+        } catch (error) {
+            console.error('Erro ao atualizar:', error);
+            Toast.show({
+                type: "error",
+                text1: "Erro ao atualizar",
+                text2: "Tente novamente"
+            });
+        } finally {
+            setRefreshing(false);
+        }
     };
 
-    const handleAddProfile = async () => {
-        // Validações
+    const handleSelectProfile = (id: string) => {
+        if (editMode) return;
+
+        console.log('🎯 Selecionando perfil:', id);
+        setCurrentProfile(id);
+
+        Toast.show({
+            type: "success",
+            text1: "Perfil selecionado",
+            text2: "Redirecionando para a tela inicial..."
+        });
+
+        setTimeout(() => {
+            navigation.reset({ index: 0, routes: [{ name: "Home" as never }] });
+        }, 1000);
+    };
+
+    const validateProfileData = () => {
         if (!newName.trim()) {
             Toast.show({ type: "error", text1: "Nome do perfil é obrigatório" });
-            return;
+            return false;
         }
 
         if (newName.trim().length > 20) {
             Toast.show({ type: "error", text1: "Nome deve ter no máximo 20 caracteres" });
-            return;
+            return false;
         }
 
         if (!selectedColor) {
             Toast.show({ type: "error", text1: "Selecione uma cor para o perfil" });
-            return;
+            return false;
         }
+
+        // Verificar se o nome já existe (exceto para edição do próprio perfil)
+        const nameExists = profiles.some((profile, index) =>
+            profile.name.toLowerCase() === newName.trim().toLowerCase() &&
+            index !== editingIndex
+        );
+
+        if (nameExists) {
+            Toast.show({
+                type: "error",
+                text1: "Nome já existe",
+                text2: "Escolha um nome diferente"
+            });
+            return false;
+        }
+
+        return true;
+    };
+
+    const handleAddProfile = async () => {
+        if (!validateProfileData()) return;
 
         if (!canCreateMore) {
             Toast.show({
@@ -141,21 +241,37 @@ export default function ChooseProfileScreen() {
         }
 
         try {
-            await createProfile({
+            console.log('🚀 Criando perfil:', {
                 name: newName.trim(),
                 color: selectedColor,
                 userId: user.id
             });
+
+            const result = await createProfile({
+                name: newName.trim(),
+                color: selectedColor,
+                userId: user.id
+            });
+
+            console.log('✅ Perfil criado com sucesso:', result);
+
             Toast.show({
                 type: "success",
                 text1: "Perfil criado com sucesso!",
                 text2: `"${newName.trim()}" foi adicionado`
             });
+
             setShowModal(false);
             resetModal();
-            await refetch();
+
+            // Forçar atualização dos dados
+            await Promise.all([
+                refetchProfiles(),
+                refetchLimits()
+            ]);
+
         } catch (error: any) {
-            console.error("Erro ao criar perfil:", error);
+            console.error("❌ Erro ao criar perfil:", error);
             const errorMessage = error?.response?.data?.message ||
                 error?.message ||
                 "Erro ao criar perfil";
@@ -169,35 +285,41 @@ export default function ChooseProfileScreen() {
 
     const handleEditProfile = async () => {
         if (editingIndex === null) return;
-
-        // Validações
-        if (!newName.trim()) {
-            Toast.show({ type: "error", text1: "Nome do perfil é obrigatório" });
-            return;
-        }
-
-        if (newName.trim().length > 20) {
-            Toast.show({ type: "error", text1: "Nome deve ter no máximo 20 caracteres" });
-            return;
-        }
+        if (!validateProfileData()) return;
 
         const profile = profiles[editingIndex];
         try {
-            await editProfile({
+            console.log('✏️ Editando perfil:', {
                 id: profile.id,
                 name: newName.trim(),
                 color: selectedColor
             });
+
+            const result = await editProfile({
+                id: profile.id,
+                name: newName.trim(),
+                color: selectedColor
+            });
+
+            console.log('✅ Perfil editado com sucesso:', result);
+
             Toast.show({
                 type: "success",
                 text1: "Perfil atualizado!",
                 text2: `"${newName.trim()}" foi salvo`
             });
+
             setShowModal(false);
             resetModal();
-            await refetch();
+
+            // Forçar atualização dos dados
+            await Promise.all([
+                refetchProfiles(),
+                refetchLimits()
+            ]);
+
         } catch (error: any) {
-            console.error("Erro ao editar perfil:", error);
+            console.error("❌ Erro ao editar perfil:", error);
             const errorMessage = error?.response?.data?.message ||
                 error?.message ||
                 "Erro ao editar perfil";
@@ -223,7 +345,7 @@ export default function ChooseProfileScreen() {
 
         Alert.alert(
             "Excluir Perfil",
-            `Tem certeza que deseja excluir o perfil "${profile.name}"?`,
+            `Tem certeza que deseja excluir o perfil "${profile.name}"?\n\nEsta ação não pode ser desfeita.`,
             [
                 { text: "Cancelar", style: "cancel" },
                 {
@@ -231,7 +353,10 @@ export default function ChooseProfileScreen() {
                     style: "destructive",
                     onPress: async () => {
                         try {
+                            console.log('🗑️ Excluindo perfil:', profile.id);
+
                             await deleteProfile(profile.id);
+
                             Toast.show({
                                 type: "success",
                                 text1: "Perfil excluído!",
@@ -239,15 +364,23 @@ export default function ChooseProfileScreen() {
                             });
 
                             // Se o perfil excluído era o ativo, definir outro como ativo
-                            const remainingProfiles = profiles.filter((_, i) => i !== index);
-                            if (remainingProfiles.length > 0) {
-                                const newActive = remainingProfiles[0]?.id || null;
-                                setCurrentProfile(newActive);
+                            if (user?.currentProfileId === profile.id) {
+                                const remainingProfiles = profiles.filter((_, i) => i !== index);
+                                if (remainingProfiles.length > 0) {
+                                    const newActive = remainingProfiles[0]?.id || null;
+                                    setCurrentProfile(newActive);
+                                    console.log('🔄 Perfil ativo alterado para:', newActive);
+                                }
                             }
 
-                            await refetch();
+                            // Forçar atualização dos dados
+                            await Promise.all([
+                                refetchProfiles(),
+                                refetchLimits()
+                            ]);
+
                         } catch (error: any) {
-                            console.error("Erro ao excluir perfil:", error);
+                            console.error("❌ Erro ao excluir perfil:", error);
                             const errorMessage = error?.response?.data?.message ||
                                 error?.message ||
                                 "Erro ao excluir perfil";
@@ -288,7 +421,12 @@ export default function ChooseProfileScreen() {
     const resetModal = () => {
         setEditingIndex(null);
         setNewName("");
-        setSelectedColor(availableColors[0] || profileColors[0]);
+        // Definir cor padrão baseada nas cores disponíveis
+        if (availableColors.length > 0) {
+            setSelectedColor(availableColors[0]);
+        } else {
+            setSelectedColor(profileColors[0]);
+        }
     };
 
     const closeModal = () => {
@@ -296,10 +434,105 @@ export default function ChooseProfileScreen() {
         resetModal();
     };
 
-    // Função para navegar para upgrade de plano
     const handleUpgradePlan = () => {
         setShowModal(false);
         navigation.navigate("ChangePlan" as never);
+    };
+
+    const getColorsForPicker = () => {
+        if (editingIndex !== null) {
+            // Para edição, incluir a cor atual mesmo que já esteja em uso
+            const currentColor = profiles[editingIndex]?.color;
+            const colors = [...availableColors];
+            if (currentColor && !colors.includes(currentColor)) {
+                colors.unshift(currentColor);
+            }
+            return colors;
+        } else {
+            // Para novo perfil, apenas cores disponíveis
+            return availableColors;
+        }
+    };
+
+    // Renderizar item do perfil
+    const renderProfileItem = ({ item, index }: { item: any; index: number }) => {
+        const profile = item;
+        const initials = profile.name
+            .split(" ")
+            .map((p: string) => p[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+
+        const isCurrentProfile = user?.currentProfileId === profile.id;
+
+        console.log('🎨 Renderizando perfil:', {
+            index,
+            profileId: profile.id,
+            name: profile.name,
+            isCurrentProfile
+        });
+
+        return (
+            <View key={profile.id} style={styles.profileItem}>
+                <TouchableOpacity
+                    onPress={() => handleSelectProfile(profile.id)}
+                    style={[
+                        styles.profileTouchable,
+                        isCurrentProfile && styles.currentProfileTouchable
+                    ]}
+                    disabled={editMode}
+                >
+                    <View style={[
+                        styles.avatar,
+                        { backgroundColor: profile.color },
+                        editMode && styles.avatarEditMode,
+                        isCurrentProfile && styles.currentAvatar
+                    ]}>
+                        <Text style={styles.avatarText}>{initials}</Text>
+                        {isCurrentProfile && (
+                            <View style={styles.currentBadge}>
+                                <Ionicons name="checkmark" size={16} color="#fff" />
+                            </View>
+                        )}
+                    </View>
+                    <Text style={[
+                        styles.profileName,
+                        isCurrentProfile && styles.currentProfileName
+                    ]}>
+                        {profile.name}
+                    </Text>
+                    {isCurrentProfile && (
+                        <Text style={styles.currentLabel}>ATUAL</Text>
+                    )}
+                </TouchableOpacity>
+
+                {editMode && (
+                    <View style={styles.iconsRow}>
+                        <TouchableOpacity
+                            onPress={() => openEditModal(index)}
+                            disabled={isEditing}
+                            style={styles.iconButton}
+                        >
+                            <Ionicons name="pencil" size={18} color="#EC4899" />
+                        </TouchableOpacity>
+                        {profiles.length > 1 && (
+                            <TouchableOpacity
+                                onPress={() => handleDelete(index)}
+                                disabled={isDeleting}
+                                style={[styles.iconButton, { marginLeft: 8 }]}
+                            >
+                                <Ionicons
+                                    name="trash"
+                                    size={18}
+                                    color="#EF4444"
+                                />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
+            </View>
+        );
     };
 
     // Loading state
@@ -327,7 +560,7 @@ export default function ChooseProfileScreen() {
                             'Erro desconhecido'}
                     </Text>
 
-                    <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+                    <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
                         <LinearGradient
                             colors={["#EC4899", "#D946EF"]}
                             start={{ x: 0, y: 0 }}
@@ -345,13 +578,24 @@ export default function ChooseProfileScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        tintColor="#EC4899"
+                        colors={["#EC4899"]}
+                    />
+                }
+            >
                 {/* Header */}
                 <View style={styles.headerContainer}>
                     <Text style={styles.title}>Quem Está Assistindo?</Text>
                     <Text style={styles.subtitle}>
-                        <Text style={{ color: theme.text }}>M</Text>ilky{" "}
-                        <Text style={{ color: theme.text }}>M</Text>ovies
+                        <Text style={{ color: "#EC4899" }}>M</Text>ilky{" "}
+                        <Text style={{ color: "#EC4899" }}>M</Text>ovies
                     </Text>
                 </View>
 
@@ -366,99 +610,48 @@ export default function ChooseProfileScreen() {
                         </Text>
                     </View>
 
-                    {planName !== 'complete' && (
+                    <View style={styles.limitActions}>
                         <TouchableOpacity
-                            style={styles.upgradeButton}
-                            onPress={handleUpgradePlan}
+                            style={styles.refreshButton}
+                            onPress={handleRefresh}
+                            disabled={refreshing}
                         >
-                            <Ionicons name="arrow-up-circle-outline" size={16} color="#EC4899" />
-                            <Text style={styles.upgradeText}>Upgrade</Text>
+                            <Ionicons
+                                name={refreshing ? "hourglass" : "refresh-outline"}
+                                size={16}
+                                color="#10B981"
+                            />
                         </TouchableOpacity>
-                    )}
+
+                        {planName !== 'complete' && (
+                            <TouchableOpacity
+                                style={styles.upgradeButton}
+                                onPress={handleUpgradePlan}
+                            >
+                                <Ionicons name="arrow-up-circle-outline" size={16} color="#EC4899" />
+                                <Text style={styles.upgradeText}>Upgrade</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
 
                 {profiles.length > 0 ? (
                     <View style={styles.carouselContainer}>
-                        <Carousel
-                            width={140}
-                            height={180}
-                            loop={false}
-                            autoPlay={false}
-                            data={profiles}
-                            scrollAnimationDuration={400}
-                            renderItem={({ index }) => {
-                                const profile = profiles[index];
-                                const initials = profile.name
-                                    .split(" ")
-                                    .map(p => p[0])
-                                    .join("")
-                                    .toUpperCase()
-                                    .slice(0, 2);
+                        <Text style={styles.profilesTitle}>
+                            Selecione um perfil ({profiles.length} disponível{profiles.length > 1 ? 'is' : ''})
+                        </Text>
 
-                                const isCurrentProfile = user?.currentProfileId === profile.id;
-
-                                return (
-                                    <View key={profile.id} style={styles.profileItem}>
-                                        <TouchableOpacity
-                                            onPress={() => handleSelectProfile(profile.id)}
-                                            style={[
-                                                styles.profileTouchable,
-                                                isCurrentProfile && styles.currentProfileTouchable
-                                            ]}
-                                            disabled={editMode}
-                                        >
-                                            <View style={[
-                                                styles.avatar,
-                                                { backgroundColor: profile.color },
-                                                editMode && styles.avatarEditMode,
-                                                isCurrentProfile && styles.currentAvatar
-                                            ]}>
-                                                <Text style={styles.avatarText}>{initials}</Text>
-                                                {isCurrentProfile && (
-                                                    <View style={styles.currentBadge}>
-                                                        <Ionicons name="checkmark" size={16} color="#fff" />
-                                                    </View>
-                                                )}
-                                            </View>
-                                            <Text style={[
-                                                styles.profileName,
-                                                isCurrentProfile && styles.currentProfileName
-                                            ]}>
-                                                {profile.name}
-                                            </Text>
-                                            {isCurrentProfile && (
-                                                <Text style={styles.currentLabel}>ATUAL</Text>
-                                            )}
-                                        </TouchableOpacity>
-
-                                        {editMode && (
-                                            <View style={styles.iconsRow}>
-                                                <TouchableOpacity
-                                                    onPress={() => openEditModal(index)}
-                                                    disabled={isEditing}
-                                                    style={styles.iconButton}
-                                                >
-                                                    <Ionicons name="pencil" size={18} color="#EC4899" />
-                                                </TouchableOpacity>
-                                                {profiles.length > 1 && (
-                                                    <TouchableOpacity
-                                                        onPress={() => handleDelete(index)}
-                                                        disabled={isDeleting}
-                                                        style={[styles.iconButton, { marginLeft: 8 }]}
-                                                    >
-                                                        <Ionicons
-                                                            name="trash"
-                                                            size={18}
-                                                            color="#EF4444"
-                                                        />
-                                                    </TouchableOpacity>
-                                                )}
-                                            </View>
-                                        )}
-                                    </View>
-                                );
-                            }}
-                        />
+                        {/* Usar FlatList em vez de Carousel para melhor controle */}
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.profilesScrollContainer}
+                            style={styles.profilesScroll}
+                        >
+                            {profiles.map((profile, index) =>
+                                renderProfileItem({ item: profile, index })
+                            )}
+                        </ScrollView>
                     </View>
                 ) : (
                     <View style={styles.emptyState}>
@@ -570,10 +763,7 @@ export default function ChooseProfileScreen() {
 
                         <Text style={styles.modalSubtitle}>Cor do perfil:</Text>
                         <View style={styles.colorPicker}>
-                            {(editingIndex !== null
-                                ? [...new Set([...availableColors, selectedColor])]
-                                : availableColors
-                            ).map((color, index) => (
+                            {getColorsForPicker().map((color, index) => (
                                 <TouchableOpacity
                                     key={`${color}-${index}`}
                                     style={[
@@ -582,11 +772,16 @@ export default function ChooseProfileScreen() {
                                         selectedColor === color && styles.selectedColor,
                                     ]}
                                     onPress={() => setSelectedColor(color)}
-                                />
+                                    activeOpacity={0.8}
+                                >
+                                    {selectedColor === color && (
+                                        <Ionicons name="checkmark" size={20} color="#fff" />
+                                    )}
+                                </TouchableOpacity>
                             ))}
                         </View>
 
-                        {availableColors.length === 0 && editingIndex === null && (
+                        {getColorsForPicker().length === 0 && (
                             <Text style={styles.noColorsText}>
                                 Todas as cores estão em uso. Exclua um perfil para liberar cores.
                             </Text>
@@ -608,11 +803,11 @@ export default function ChooseProfileScreen() {
 
                             <TouchableOpacity
                                 onPress={editingIndex !== null ? handleEditProfile : handleAddProfile}
-                                disabled={isCreating || isEditing || !newName.trim()}
+                                disabled={isCreating || isEditing || !newName.trim() || !selectedColor}
                                 style={styles.modalConfirmButton}
                             >
                                 <LinearGradient
-                                    colors={!newName.trim() || isCreating || isEditing
+                                    colors={!newName.trim() || !selectedColor || isCreating || isEditing
                                         ? ["#6B7280", "#6B7280"]
                                         : ["#EC4899", "#D946EF"]
                                     }
@@ -623,7 +818,9 @@ export default function ChooseProfileScreen() {
                                     {(isCreating || isEditing) ? (
                                         <ActivityIndicator size="small" color="#fff" />
                                     ) : (
-                                        <Text style={styles.confirmText}>Salvar</Text>
+                                        <Text style={styles.confirmText}>
+                                            {editingIndex !== null ? "Salvar" : "Criar"}
+                                        </Text>
                                     )}
                                 </LinearGradient>
                             </TouchableOpacity>
@@ -634,8 +831,6 @@ export default function ChooseProfileScreen() {
         </SafeAreaView>
     );
 }
-
-const theme = { text: "#EC4899" }; // Definição do tema
 
 const styles = StyleSheet.create({
     container: {
@@ -666,6 +861,17 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         letterSpacing: 0.5,
     },
+    debugContainer: {
+        backgroundColor: "#374151",
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 16,
+    },
+    debugText: {
+        color: "#F59E0B",
+        fontSize: 12,
+        marginBottom: 2,
+    },
     limitContainer: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -687,6 +893,16 @@ const styles = StyleSheet.create({
     planText: {
         color: "#9CA3AF",
         fontSize: 14,
+    },
+    limitActions: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    refreshButton: {
+        backgroundColor: "#374151",
+        padding: 8,
+        borderRadius: 8,
     },
     upgradeButton: {
         flexDirection: "row",
@@ -750,8 +966,22 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
     carouselContainer: {
-        height: 200,
         marginBottom: 24,
+    },
+    profilesTitle: {
+        color: "#F3F4F6",
+        fontSize: 16,
+        fontWeight: "600",
+        marginBottom: 16,
+        textAlign: "center",
+    },
+    profilesScroll: {
+        flexGrow: 0,
+        paddingVertical: 20,
+    },
+    profilesScrollContainer: {
+        paddingHorizontal: 8,
+        alignItems: "center",
     },
     emptyState: {
         alignItems: "center",
@@ -792,6 +1022,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginHorizontal: 16,
         marginBottom: 24,
+        minWidth: 100,
     },
     profileTouchable: {
         alignItems: "center",
@@ -842,6 +1073,7 @@ const styles = StyleSheet.create({
         fontWeight: "500",
         textAlign: "center",
         marginBottom: 4,
+        maxWidth: 90,
     },
     currentProfileName: {
         color: "#10B981",
@@ -943,6 +1175,8 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 2,
         borderColor: "transparent",
+        justifyContent: "center",
+        alignItems: "center",
     },
     selectedColor: {
         borderColor: "#F9FAFB",

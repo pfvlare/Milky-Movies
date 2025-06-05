@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -13,30 +13,16 @@ import {
   Alert,
   Share,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import AppLayout from "../components/AppLayout";
-import { image185, fallBackMoviePoster, formatRating, formatDate } from "../hooks/useMovies";
-import { useUserStore } from "../store/userStore";
-import Toast from "react-native-toast-message";
+import { image185, fallBackMoviePoster, formatRating } from "../hooks/useMovies";
+import { useFavorites } from "../hooks/useFavorites";
 
 const { width, height } = Dimensions.get("window");
-const ITEM_WIDTH = (width - 48) / 2; // 16 padding left + right + 16 gap
-
-interface FavoriteMovie {
-  id: number;
-  title: string;
-  poster_path?: string;
-  release_date?: string;
-  vote_average?: number;
-  vote_count?: number;
-  overview?: string;
-  popularity?: number;
-  added_at?: number; // Timestamp de quando foi adicionado aos favoritos
-}
+const ITEM_WIDTH = (width - 48) / 2;
 
 const styles = StyleSheet.create({
   container: {
@@ -74,6 +60,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
   },
+  syncButton: {
+    backgroundColor: "rgba(34, 197, 94, 0.2)",
+    borderColor: "rgba(34, 197, 94, 0.4)",
+  },
   titleContainer: {
     alignItems: "center",
     marginTop: 8,
@@ -93,6 +83,23 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 4,
     textAlign: "center",
+  },
+  syncStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "rgba(34, 197, 94, 0.1)",
+    borderRadius: 12,
+    alignSelf: "center",
+  },
+  syncStatusText: {
+    color: "#22C55E",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 6,
   },
   statsContainer: {
     flexDirection: "row",
@@ -119,35 +126,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     marginTop: 4,
-  },
-  sortContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  sortButton: {
-    backgroundColor: "#1F2937",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#374151",
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  sortButtonActive: {
-    backgroundColor: "#EC4899",
-    borderColor: "#EC4899",
-  },
-  sortText: {
-    color: "#D1D5DB",
-    fontSize: 14,
-    fontWeight: "600",
-    marginLeft: 6,
-  },
-  sortTextActive: {
-    color: "#fff",
   },
   listContainer: {
     paddingHorizontal: 16,
@@ -323,124 +301,22 @@ const styles = StyleSheet.create({
 });
 
 export default function FavoritesScreen() {
-  const [favorites, setFavorites] = useState<FavoriteMovie[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [sortBy, setSortBy] = useState<'recent' | 'rating' | 'title' | 'year'>('recent');
-
   const navigation = useNavigation();
-  const profileId = useUserStore((state) => state.user?.currentProfileId);
-
-  const loadFavorites = async () => {
-    try {
-      if (!profileId) {
-        setFavorites([]);
-        setLoading(false);
-        return;
-      }
-
-      const key = `favorites_${profileId}`;
-      const stored = await AsyncStorage.getItem(key);
-
-      if (stored) {
-        const favoritesData: FavoriteMovie[] = JSON.parse(stored);
-        // Adicionar timestamp se não existir (para favoritos antigos)
-        const favoritesWithTimestamp = favoritesData.map(fav => ({
-          ...fav,
-          added_at: fav.added_at || Date.now()
-        }));
-        setFavorites(favoritesWithTimestamp);
-      } else {
-        setFavorites([]);
-      }
-    } catch (err) {
-      console.error("Erro ao carregar favoritos:", err);
-      Toast.show({
-        type: "error",
-        text1: "Erro ao carregar favoritos",
-        text2: "Tente novamente"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Recarregar favoritos sempre que a tela ganhar foco
-  useFocusEffect(
-    useCallback(() => {
-      loadFavorites();
-    }, [profileId])
-  );
+  const {
+    favorites,
+    loading,
+    syncLoading,
+    loadFavorites,
+    removeFavorite,
+    clearAllFavorites,
+    syncWithBackend
+  } = useFavorites();
 
   const handleRefresh = async () => {
-    setRefreshing(true);
     await loadFavorites();
-    setRefreshing(false);
-    Toast.show({
-      type: "success",
-      text1: "Favoritos atualizados",
-      text2: `${favorites.length} filmes encontrados`
-    });
   };
 
-  const sortFavorites = (sortType: typeof sortBy) => {
-    setSortBy(sortType);
-    const sortedFavorites = [...favorites].sort((a, b) => {
-      switch (sortType) {
-        case 'recent':
-          return (b.added_at || 0) - (a.added_at || 0);
-        case 'rating':
-          return (b.vote_average || 0) - (a.vote_average || 0);
-        case 'title':
-          return (a.title || '').localeCompare(b.title || '');
-        case 'year':
-          return new Date(b.release_date || '').getFullYear() - new Date(a.release_date || '').getFullYear();
-        default:
-          return 0;
-      }
-    });
-    setFavorites(sortedFavorites);
-
-    Toast.show({
-      type: "info",
-      text1: "Lista ordenada",
-      text2: getSortLabel(sortType)
-    });
-  };
-
-  const getSortLabel = (sortType: typeof sortBy) => {
-    switch (sortType) {
-      case 'recent': return 'Por data de adição';
-      case 'rating': return 'Por avaliação';
-      case 'title': return 'Por título (A-Z)';
-      case 'year': return 'Por ano de lançamento';
-      default: return '';
-    }
-  };
-
-  const removeFavorite = async (movieId: number) => {
-    try {
-      const key = `favorites_${profileId}`;
-      const updatedFavorites = favorites.filter(fav => fav.id !== movieId);
-      await AsyncStorage.setItem(key, JSON.stringify(updatedFavorites));
-      setFavorites(updatedFavorites);
-
-      Toast.show({
-        type: "info",
-        text1: "Removido dos favoritos",
-        text2: "Filme removido com sucesso"
-      });
-    } catch (error) {
-      console.error("Erro ao remover favorito:", error);
-      Toast.show({
-        type: "error",
-        text1: "Erro",
-        text2: "Não foi possível remover o filme"
-      });
-    }
-  };
-
-  const confirmRemoveFavorite = (movie: FavoriteMovie) => {
+  const confirmRemoveFavorite = (movie: any) => {
     Alert.alert(
       "Remover dos Favoritos",
       `Tem certeza que deseja remover "${movie.title}" dos seus favoritos?`,
@@ -458,7 +334,7 @@ export default function FavoritesScreen() {
     );
   };
 
-  const clearAllFavorites = () => {
+  const confirmClearAll = () => {
     Alert.alert(
       "Limpar Favoritos",
       "Tem certeza que deseja remover todos os filmes dos favoritos?",
@@ -470,20 +346,7 @@ export default function FavoritesScreen() {
         {
           text: "Limpar Tudo",
           style: "destructive",
-          onPress: async () => {
-            try {
-              const key = `favorites_${profileId}`;
-              await AsyncStorage.removeItem(key);
-              setFavorites([]);
-              Toast.show({
-                type: "success",
-                text1: "Favoritos limpos",
-                text2: "Todos os filmes foram removidos"
-              });
-            } catch (error) {
-              console.error("Erro ao limpar favoritos:", error);
-            }
-          },
+          onPress: clearAllFavorites,
         },
       ]
     );
@@ -501,7 +364,7 @@ export default function FavoritesScreen() {
     }
   };
 
-  const goToMovie = (movie: FavoriteMovie) => {
+  const goToMovie = (movie: any) => {
     navigation.navigate("Movie" as never, movie as never);
   };
 
@@ -539,7 +402,7 @@ export default function FavoritesScreen() {
     }
   };
 
-  const renderMovieItem = ({ item, index }: { item: FavoriteMovie; index: number }) => (
+  const renderMovieItem = ({ item, index }: { item: any; index: number }) => (
     <View
       style={[
         styles.movieItem,
@@ -619,12 +482,24 @@ export default function FavoritesScreen() {
           </TouchableOpacity>
 
           <View style={styles.rightControls}>
+            <TouchableOpacity
+              style={[styles.headerButton, styles.syncButton]}
+              onPress={syncWithBackend}
+              disabled={syncLoading}
+            >
+              <Ionicons
+                name={syncLoading ? "refresh" : "cloud-outline"}
+                size={20}
+                color="#22C55E"
+              />
+            </TouchableOpacity>
+
             {favorites.length > 0 && (
               <>
                 <TouchableOpacity style={styles.headerButton} onPress={shareFavorites}>
                   <Ionicons name="share-outline" size={20} color="#F3F4F6" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.headerButton} onPress={clearAllFavorites}>
+                <TouchableOpacity style={styles.headerButton} onPress={confirmClearAll}>
                   <Ionicons name="trash-outline" size={20} color="#EF4444" />
                 </TouchableOpacity>
               </>
@@ -639,6 +514,13 @@ export default function FavoritesScreen() {
             <Text style={styles.pinkText}>M</Text>ovies
           </Text>
           <Text style={styles.subtitle}>💖 Meus Favoritos</Text>
+
+          {syncLoading && (
+            <View style={styles.syncStatus}>
+              <ActivityIndicator size="small" color="#22C55E" />
+              <Text style={styles.syncStatusText}>Sincronizando...</Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -661,71 +543,6 @@ export default function FavoritesScreen() {
             </Text>
             <Text style={styles.statLabel}>Anos Diferentes</Text>
           </View>
-        </View>
-      )}
-
-      {/* Filtros de Ordenação */}
-      {favorites.length > 1 && (
-        <View style={styles.sortContainer}>
-          <TouchableOpacity
-            style={[
-              styles.sortButton,
-              sortBy === 'recent' && styles.sortButtonActive
-            ]}
-            onPress={() => sortFavorites('recent')}
-          >
-            <Ionicons
-              name="time"
-              size={16}
-              color={sortBy === 'recent' ? "#fff" : "#D1D5DB"}
-            />
-            <Text style={[
-              styles.sortText,
-              sortBy === 'recent' && styles.sortTextActive
-            ]}>
-              Recente
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.sortButton,
-              sortBy === 'rating' && styles.sortButtonActive
-            ]}
-            onPress={() => sortFavorites('rating')}
-          >
-            <Ionicons
-              name="star"
-              size={16}
-              color={sortBy === 'rating' ? "#fff" : "#D1D5DB"}
-            />
-            <Text style={[
-              styles.sortText,
-              sortBy === 'rating' && styles.sortTextActive
-            ]}>
-              Nota
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.sortButton,
-              sortBy === 'title' && styles.sortButtonActive
-            ]}
-            onPress={() => sortFavorites('title')}
-          >
-            <Ionicons
-              name="text"
-              size={16}
-              color={sortBy === 'title' ? "#fff" : "#D1D5DB"}
-            />
-            <Text style={[
-              styles.sortText,
-              sortBy === 'title' && styles.sortTextActive
-            ]}>
-              A-Z
-            </Text>
-          </TouchableOpacity>
         </View>
       )}
     </>
@@ -794,7 +611,7 @@ export default function FavoritesScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={refreshing}
+              refreshing={loading}
               onRefresh={handleRefresh}
               tintColor="#EC4899"
               colors={["#EC4899"]}

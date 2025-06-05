@@ -17,14 +17,13 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import Cast from "../components/cast";
 import MovieList from "../components/movieList";
 import AppLayout from "../components/AppLayout";
 import { useMovieComplete } from "../hooks/useMovies";
 import { image500, imageOriginal, fallBackMoviePoster, formatRuntime, formatRating } from "../hooks/useMovies";
-import { useUserStore } from "../store/userStore";
+import { useFavorites } from "../hooks/useFavorites";
 import Toast from "react-native-toast-message";
 
 const { width, height } = Dimensions.get("window");
@@ -89,6 +88,10 @@ const styles = StyleSheet.create({
   },
   favoriteButtonActive: {
     backgroundColor: "rgba(236, 72, 153, 0.9)",
+    transform: [{ scale: 1.05 }],
+  },
+  favoriteButtonPressed: {
+    transform: [{ scale: 0.95 }],
   },
   detailsContainer: {
     marginTop: -(height * 0.12),
@@ -374,6 +377,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
   },
+  favoriteIndicator: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    backgroundColor: "#22C55E",
+    borderRadius: 6,
+    width: 12,
+    height: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  syncIndicator: {
+    backgroundColor: "rgba(34, 197, 94, 0.2)",
+    borderColor: "rgba(34, 197, 94, 0.5)",
+  },
 });
 
 interface MovieScreenParams {
@@ -388,65 +406,47 @@ const MovieScreen = () => {
   const { id, title, poster_path } = route.params as MovieScreenParams;
 
   const [refreshing, setRefreshing] = useState(false);
-  const [isFavourite, setIsFavourite] = useState(false);
+  const [favoritePressed, setFavoritePressed] = useState(false);
 
-  const profileId = useUserStore((state) => state.user?.currentProfileId);
+  // Hook de favoritos com sincronização
+  const { isFavorite, addFavorite, removeFavorite, syncLoading } = useFavorites();
 
   // Hook para buscar dados completos do filme
   const { movie, credits, similar, isLoading, hasError, refetchAll } = useMovieComplete(id);
 
-  useEffect(() => {
-    if (id) {
-      checkIfFavorite(id);
-    }
-  }, [id, profileId]);
-
-  const checkIfFavorite = async (movieId: number) => {
-    try {
-      const key = `favorites_${profileId}`;
-      const stored = await AsyncStorage.getItem(key);
-      const favorites = stored ? JSON.parse(stored) : [];
-      const found = favorites.find((m: any) => m.id === movieId);
-      setIsFavourite(!!found);
-    } catch (error) {
-      console.error("Erro ao verificar favorito:", error);
-    }
-  };
+  // Verificar se é favorito
+  const isMovieFavorite = isFavorite(id);
 
   const toggleFavorite = async () => {
+    if (!movie && !title) {
+      Toast.show({
+        type: "error",
+        text1: "Erro",
+        text2: "Informações do filme não disponíveis"
+      });
+      return;
+    }
+
+    setFavoritePressed(true);
+
+    // Preparar dados do filme
+    const movieData = {
+      id,
+      title: movie?.title || title || "Filme sem título",
+      poster_path: movie?.poster_path || poster_path,
+      release_date: movie?.release_date,
+      vote_average: movie?.vote_average,
+      vote_count: movie?.vote_count,
+      overview: movie?.overview,
+      popularity: movie?.popularity,
+    };
+
     try {
-      const key = `favorites_${profileId}`;
-      const stored = await AsyncStorage.getItem(key);
-      const favorites = stored ? JSON.parse(stored) : [];
-
-      const movieData = {
-        id,
-        title: movie?.title || title,
-        poster_path: movie?.poster_path || poster_path,
-        release_date: movie?.release_date,
-        vote_average: movie?.vote_average,
-      };
-
-      let updated;
-      if (isFavourite) {
-        updated = favorites.filter((m: any) => m.id !== id);
-        Toast.show({
-          type: "info",
-          text1: "Removido dos favoritos",
-          text2: movieData.title
-        });
+      if (isMovieFavorite) {
+        await removeFavorite(id);
       } else {
-        const alreadyExists = favorites.some((m: any) => m.id === id);
-        updated = alreadyExists ? favorites : [...favorites, movieData];
-        Toast.show({
-          type: "success",
-          text1: "Adicionado aos favoritos",
-          text2: movieData.title
-        });
+        await addFavorite(movieData);
       }
-
-      await AsyncStorage.setItem(key, JSON.stringify(updated));
-      setIsFavourite(!isFavourite);
     } catch (error) {
       console.error("Erro ao toggle favorito:", error);
       Toast.show({
@@ -454,23 +454,35 @@ const MovieScreen = () => {
         text1: "Erro",
         text2: "Não foi possível atualizar favoritos"
       });
+    } finally {
+      setTimeout(() => setFavoritePressed(false), 200);
     }
   };
 
   const handleShare = async () => {
     try {
+      const movieTitle = movie?.title || title || "Filme";
+      const movieOverview = movie?.overview || 'Um ótimo filme para assistir!';
+
       await Share.share({
-        message: `Confira este filme: ${movie?.title || title}\n\n${movie?.overview || 'Um ótimo filme para assistir!'}`,
-        title: movie?.title || title,
+        message: `🎬 Confira este filme: ${movieTitle}\n\n${movieOverview}\n\n📱 Compartilhado via Milky Movies`,
+        title: movieTitle,
       });
     } catch (error) {
       console.error("Erro ao compartilhar:", error);
+      Toast.show({
+        type: "error",
+        text1: "Erro ao compartilhar",
+        text2: "Tente novamente"
+      });
     }
   };
 
   const handleWatchTrailer = () => {
-    const searchQuery = `${movie?.title || title} trailer oficial`;
+    const movieTitle = movie?.title || title || "filme";
+    const searchQuery = `${movieTitle} trailer oficial`;
     const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
+
     Linking.openURL(youtubeUrl).catch(() => {
       Toast.show({
         type: "error",
@@ -481,11 +493,16 @@ const MovieScreen = () => {
   };
 
   const handleWatchMovie = () => {
-    Toast.show({
-      type: "info",
-      text1: "Funcionalidade em desenvolvimento",
-      text2: "Em breve você poderá assistir filmes completos!"
-    });
+    // Navegar para o player com URL do YouTube
+    const movieTitle = movie?.title || title || "filme";
+    const searchQuery = `${movieTitle} filme completo`;
+    const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
+
+    navigation.navigate("PlayerScreen" as never, {
+      videoUrl: youtubeUrl,
+      title: movieTitle,
+      type: 'movie'
+    } as never);
   };
 
   const handleRefresh = async () => {
@@ -525,6 +542,18 @@ const MovieScreen = () => {
       return new Date(dateString).toLocaleDateString('pt-BR');
     } catch {
       return dateString;
+    }
+  };
+
+  const getImageSource = () => {
+    if (movie?.backdrop_path) {
+      return imageOriginal(movie.backdrop_path);
+    } else if (movie?.poster_path) {
+      return image500(movie.poster_path);
+    } else if (poster_path) {
+      return image500(poster_path);
+    } else {
+      return fallBackMoviePoster;
     }
   };
 
@@ -614,11 +643,7 @@ const MovieScreen = () => {
         <View style={styles.headerContainer}>
           <Image
             source={{
-              uri: movie?.backdrop_path
-                ? imageOriginal(movie.backdrop_path)
-                : movie?.poster_path
-                  ? image500(movie.poster_path)
-                  : fallBackMoviePoster,
+              uri: getImageSource(),
             }}
             style={styles.moviePoster}
           />
@@ -650,15 +675,29 @@ const MovieScreen = () => {
               <TouchableOpacity
                 style={[
                   styles.controlButton,
-                  isFavourite && styles.favoriteButtonActive
+                  isMovieFavorite && styles.favoriteButtonActive,
+                  favoritePressed && styles.favoriteButtonPressed,
+                  syncLoading && styles.syncIndicator
                 ]}
                 onPress={toggleFavorite}
+                disabled={syncLoading}
               >
-                <Ionicons
-                  name={isFavourite ? "heart" : "heart-outline"}
-                  size={24}
-                  color={isFavourite ? "white" : "#F3F4F6"}
-                />
+                {syncLoading ? (
+                  <ActivityIndicator size="small" color="#22C55E" />
+                ) : (
+                  <>
+                    <Ionicons
+                      name={isMovieFavorite ? "heart" : "heart-outline"}
+                      size={24}
+                      color={isMovieFavorite ? "white" : "#F3F4F6"}
+                    />
+                    {isMovieFavorite && (
+                      <View style={styles.favoriteIndicator}>
+                        <Ionicons name="checkmark" size={8} color="white" />
+                      </View>
+                    )}
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -702,6 +741,13 @@ const MovieScreen = () => {
                   {movie?.status === "Released" ? "Lançado" : movie?.status || "N/A"}
                 </Text>
               </View>
+
+              {isMovieFavorite && (
+                <View style={styles.quickInfoItem}>
+                  <Ionicons name="heart" size={16} color="#EC4899" />
+                  <Text style={styles.quickInfoText}>Favorito</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -856,11 +902,11 @@ const MovieScreen = () => {
             hiddenSeeAll={false}
             navigation={navigation}
             onSeeAll={() => {
-              Toast.show({
-                type: "info",
-                text1: "Ver todos similares",
-                text2: `${similar.results.length} filmes encontrados`
-              });
+              navigation.navigate("MovieListScreen" as never, {
+                title: "Filmes Similares",
+                data: similar.results,
+                category: "similar"
+              } as never);
             }}
           />
         )}

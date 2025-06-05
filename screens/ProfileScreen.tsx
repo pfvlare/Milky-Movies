@@ -16,12 +16,13 @@ import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
+import Toast from "react-native-toast-message";
 
 import * as themeConfig from "../theme";
 import { useUserStore } from "../store/userStore";
 import { RootStackParamList } from "../Navigation/NavigationTypes";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useSubscriptionByUserId } from "../hooks/useSubscription";
+import { useSubscriptionByUserId, useCancelSubscription } from "../hooks/useSubscription";
 import { useCardsByUser, useDeleteCard } from "../hooks/useCards";
 import { useProfiles } from "../hooks/useProfiles";
 import { useQueryClient } from '@tanstack/react-query';
@@ -52,9 +53,14 @@ export default function ProfileScreen() {
 
   // Hooks para buscar dados
   const { data: profiles = [] } = useProfiles(user?.id);
-  const { data: subscription } = useSubscriptionByUserId(user?.id);
+  const {
+    data: subscription,
+    refetch: refetchSubscription,
+    isLoading: isLoadingSubscription
+  } = useSubscriptionByUserId(user?.id);
   const { data: cards, refetch: refetchCards } = useCardsByUser(user?.id);
   const deleteCardMutation = useDeleteCard();
+  const { mutateAsync: cancelSubscription, isPending: isCancellingSubscription } = useCancelSubscription();
 
   // Encontrar perfil atual baseado no currentProfileId ou usar o primeiro disponível
   const currentProfile = React.useMemo(() => {
@@ -80,7 +86,7 @@ export default function ProfileScreen() {
   console.log("🚀 ~ ProfileScreen ~ user:", user);
   console.log("🚀 ~ ProfileScreen ~ profiles:", profiles);
   console.log("🚀 ~ ProfileScreen ~ currentProfile:", currentProfile);
-  console.log("🚀 ~ ProfileScreen ~ user.currentProfileId:", user?.currentProfileId);
+  console.log("🚀 ~ ProfileScreen ~ subscription:", subscription);
 
   const formatCardExpiry = (expiresDate: string) => {
     try {
@@ -222,15 +228,103 @@ export default function ProfileScreen() {
   }, [subscription, cards, orderedCards, setSubscription]);
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem("@user");
-    await AsyncStorage.removeItem("@isLoggedIn");
-    setUser({} as any);
-    navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+    Alert.alert(
+      "Confirmar Logout",
+      "Tem certeza que deseja sair da sua conta?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sair",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem("@user");
+              await AsyncStorage.removeItem("@isLoggedIn");
+              setUser({} as any);
+
+              Toast.show({
+                type: "success",
+                text1: "Logout realizado",
+                text2: "Até logo!"
+              });
+
+              navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+            } catch (error) {
+              console.error("Erro no logout:", error);
+              Toast.show({
+                type: "error",
+                text1: "Erro ao sair",
+                text2: "Tente novamente"
+              });
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleCancelSubscription = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    Alert.alert("Assinatura", "Assinatura cancelada com sucesso (modo demonstração).");
+    if (!user?.id) {
+      Toast.show({
+        type: "error",
+        text1: "Erro",
+        text2: "Usuário não identificado"
+      });
+      return;
+    }
+
+    Alert.alert(
+      "Cancelar Assinatura",
+      "Tem certeza que deseja cancelar sua assinatura?\n\nVocê perderá o acesso aos conteúdos premium e precisará selecionar um novo plano.",
+      [
+        {
+          text: "Manter Assinatura",
+          style: "cancel"
+        },
+        {
+          text: "Cancelar Assinatura",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              console.log('🚫 Iniciando cancelamento de assinatura...');
+
+              await cancelSubscription(user.id);
+
+              // Atualizar dados locais
+              await refetchSubscription();
+
+              Toast.show({
+                type: "success",
+                text1: "Assinatura cancelada",
+                text2: "Redirecionando para seleção de plano..."
+              });
+
+              // Aguardar um pouco para o toast aparecer
+              setTimeout(() => {
+                // Navegar para escolha de plano passando o userId
+                navigation.navigate("ChoosePlan", { userId: user.id });
+              }, 2000);
+
+            } catch (error: any) {
+              console.error("❌ Erro ao cancelar assinatura:", error);
+
+              let errorMessage = "Não foi possível cancelar a assinatura";
+              if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message;
+              } else if (error?.message) {
+                errorMessage = error.message;
+              }
+
+              Toast.show({
+                type: "error",
+                text1: "Erro ao cancelar",
+                text2: errorMessage
+              });
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleUpdateCard = () => {
@@ -418,66 +512,96 @@ export default function ProfileScreen() {
               <View style={[styles.section, { marginBottom: 32 }]}>
                 <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Assinatura</Text>
 
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Plano</Text>
-                  <Text style={styles.infoText}>
-                    {subscription ? getPlanInfo(subscription.plan, subscription.value).name : "Não informado"}
-                  </Text>
-                </View>
-
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Valor</Text>
-                  <Text style={styles.infoText}>
-                    {subscription ? getPlanInfo(subscription.plan, subscription.value).price : "R$ --"}
-                  </Text>
-                </View>
-
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Status</Text>
-                  <Text
-                    style={{
-                      color: subscription && isSubscriptionActive(subscription.expiresAt) ? "#10B981" : "#EF4444",
-                      fontWeight: "bold",
-                      fontSize: 16,
-                    }}
-                  >
-                    {subscription && isSubscriptionActive(subscription.expiresAt) ? "Ativa" : "Inativa"}
-                  </Text>
-                </View>
-
-                {subscription && (
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Expira em</Text>
-                    <Text style={styles.infoText}>
-                      {new Date(subscription.expiresAt).toLocaleDateString('pt-BR')}
-                    </Text>
+                {isLoadingSubscription ? (
+                  <View style={styles.loadingContainer}>
+                    <Text style={styles.loadingText}>Carregando assinatura...</Text>
                   </View>
-                )}
+                ) : subscription ? (
+                  <>
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Plano</Text>
+                      <Text style={styles.infoText}>
+                        {getPlanInfo(subscription.plan, subscription.value).name}
+                      </Text>
+                    </View>
 
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate("ChangePlan", {
-                      currentPlan: {
-                        name: subscription ? getPlanInfo(subscription.plan, subscription.value).name : "",
-                        price: subscription ? getPlanInfo(subscription.plan, subscription.value).price : "",
-                      },
-                    })
-                  }
-                >
-                  <LinearGradient
-                    colors={["#EC4899", "#D946EF"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.gradientButton}
-                  >
-                    <Text style={styles.buttonText}>Trocar Plano de Assinatura</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Valor</Text>
+                      <Text style={styles.infoText}>
+                        {getPlanInfo(subscription.plan, subscription.value).price}/mês
+                      </Text>
+                    </View>
 
-                {subscription && isSubscriptionActive(subscription.expiresAt) && (
-                  <TouchableOpacity style={styles.cancelButton} onPress={handleCancelSubscription}>
-                    <Text style={styles.buttonText}>Cancelar Assinatura</Text>
-                  </TouchableOpacity>
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Status</Text>
+                      <Text
+                        style={{
+                          color: isSubscriptionActive(subscription.expiresAt) ? "#10B981" : "#EF4444",
+                          fontWeight: "bold",
+                          fontSize: 16,
+                        }}
+                      >
+                        {isSubscriptionActive(subscription.expiresAt) ? "Ativa" : "Inativa"}
+                      </Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Expira em</Text>
+                      <Text style={styles.infoText}>
+                        {new Date(subscription.expiresAt).toLocaleDateString('pt-BR')}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate("ChangePlan", {
+                          currentPlan: {
+                            name: getPlanInfo(subscription.plan, subscription.value).name,
+                            price: getPlanInfo(subscription.plan, subscription.value).price,
+                          },
+                        })
+                      }
+                    >
+                      <LinearGradient
+                        colors={["#EC4899", "#D946EF"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.gradientButton}
+                      >
+                        <Text style={styles.buttonText}>Trocar Plano de Assinatura</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+
+                    {isSubscriptionActive(subscription.expiresAt) && (
+                      <TouchableOpacity
+                        style={[
+                          styles.cancelButton,
+                          isCancellingSubscription && styles.disabledButton
+                        ]}
+                        onPress={handleCancelSubscription}
+                        disabled={isCancellingSubscription}
+                      >
+                        <Text style={styles.buttonText}>
+                          {isCancellingSubscription ? "Cancelando..." : "Cancelar Assinatura"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                ) : (
+                  <View style={styles.noSubscriptionContainer}>
+                    <Ionicons name="card-outline" size={48} color="#6B7280" />
+                    <Text style={styles.noSubscriptionText}>Nenhuma assinatura ativa</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate("ChoosePlan", { userId: user.id })}>
+                      <LinearGradient
+                        colors={["#EC4899", "#D946EF"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.gradientButton}
+                      >
+                        <Text style={styles.buttonText}>Assinar Agora</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
 
@@ -756,6 +880,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 8,
   },
+  noSubscriptionContainer: {
+    alignItems: "center",
+    paddingVertical: 24,
+  },
+  noSubscriptionText: {
+    color: "#6B7280",
+    fontSize: 16,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    paddingVertical: 24,
+  },
   gradientButton: {
     borderRadius: 10,
     paddingVertical: 14,
@@ -768,6 +906,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     marginTop: 16,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   logoutButton: {
     backgroundColor: "#374151",
