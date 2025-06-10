@@ -1,3 +1,4 @@
+// MovieList.tsx
 import React from "react";
 import {
     View,
@@ -10,7 +11,9 @@ import {
     TouchableWithoutFeedback,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { fallBackMoviePoster, image185 } from "../api/moviedb";
+
+// Importe as funções de imagem e fallback do useMovies.js
+import { image185, fallBackMoviePoster } from '../hooks/useMovies';
 
 const { width, height } = Dimensions.get("window");
 
@@ -41,28 +44,34 @@ export default function MovieList({ title, data, hiddenSeeAll, navigation, onSee
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {data.map((item, index) => (
-                    <TouchableWithoutFeedback
-                        key={index}
-                        onPress={() => navigation?.navigate("Movie", item)}
-                    >
-                        <View style={styles.movieItem}>
-                            <Image
-                                source={{
-                                    uri: item.poster_path
-                                        ? image185(item.poster_path)
-                                        : fallBackMoviePoster,
-                                }}
-                                style={styles.moviePoster}
-                            />
-                            <Text style={styles.movieTitle}>
-                                {item.title?.length > 14
-                                    ? item.title.slice(0, 14) + "..."
-                                    : item.title}
-                            </Text>
-                        </View>
-                    </TouchableWithoutFeedback>
-                ))}
+                {data.map((item, index) => {
+                    const posterPath = typeof item.poster_path === 'string'
+                        ? item.poster_path
+                        : null;
+
+                    const sourceForImageComponent = posterPath
+                        ? { uri: image185(posterPath) } // Se for uma URL remota, use { uri: 'string' }
+                        : fallBackMoviePoster;       // Se for um fallback local (require()), passe-o diretamente
+
+                    return (
+                        <TouchableWithoutFeedback
+                            key={index}
+                            onPress={() => navigation?.navigate("Movie", item)}
+                        >
+                            <View style={styles.movieItem}>
+                                <Image
+                                    source={sourceForImageComponent} // Use a nova variável aqui
+                                    style={styles.moviePoster}
+                                />
+                                <Text style={styles.movieTitle}>
+                                    {item.title?.length > 14
+                                        ? item.title.slice(0, 14) + "..."
+                                        : item.title}
+                                </Text>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    );
+                })}
             </ScrollView>
         </View>
     );
@@ -81,7 +90,7 @@ const styles = StyleSheet.create({
     title: {
         color: "white",
         fontSize: 18,
-        fontWeight: "bold", // <- garante negrito
+        fontWeight: "bold",
     },
     seeAll: {
         fontSize: 16,

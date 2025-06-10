@@ -205,21 +205,43 @@ export const useSimilarMovies = (movieId: string | number) => {
     return { data, isLoading, error, refetch: fetchSimilar };
 };
 
-export const useSearchMovies = (query: string) => {
+export const useSearchMovies = (query: string | null, genreId: number | null) => { // MODIFICADO
     const [data, setData] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
     const searchMovies = async () => {
-        if (!query || query.length < 3) {
+        // Resetar resultados se a query ou o gênero não forem válidos
+        if ((!query || query.length < 3) && genreId === null) {
             setData(null);
+            setIsLoading(false); // Garantir que o loading seja falso
+            setError(null);
             return;
         }
 
         try {
             setIsLoading(true);
             setError(null);
-            const result = await fetcher(`/tmdb/search?q=${encodeURIComponent(query)}`);
+
+            let endpoint = '';
+            if (query && query.length >= 3) {
+                // Priorizar busca por texto se houver texto válido
+                endpoint = `/tmdb/search?q=${encodeURIComponent(query)}`;
+            } else if (genreId !== null) {
+                // Se não há texto, mas há um ID de gênero
+                // Seu backend precisa de um endpoint para /tmdb/discover?genre=ID_DO_GENERO
+                // ou você passa o ID do gênero e ele lida com isso.
+                // Vou assumir que seu backend tem um endpoint /tmdb/discover que aceita 'genre' como parâmetro.
+                endpoint = `/tmdb/search?genre=${genreId}`;
+            } else {
+                // Caso algo inesperado aconteça (deve ser pego pelo primeiro if)
+                setData(null);
+                setIsLoading(false);
+                setError(null);
+                return;
+            }
+
+            const result = await fetcher(endpoint);
             setData(result);
         } catch (err) {
             setError(err);
@@ -233,8 +255,9 @@ export const useSearchMovies = (query: string) => {
             searchMovies();
         }, 500); // Debounce de 500ms
 
+        // Dependência agora inclui query E genreId
         return () => clearTimeout(timeoutId);
-    }, [query]);
+    }, [query, genreId]); // MODIFICADO: Refaz a busca quando query OU genreId mudam
 
     return { data, isLoading, error, refetch: searchMovies };
 };

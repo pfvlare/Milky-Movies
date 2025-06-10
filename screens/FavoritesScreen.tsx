@@ -615,8 +615,7 @@ export default function FavoritesScreen() {
               onRefresh={handleRefresh}
               tintColor="#EC4899"
               colors={["#EC4899"]}
-              title="Atualizando favoritos..."
-              titleColor="#9CA3AF"
+              // As linhas `title` e `titleColor` foram removidas ou comentadas
             />
           }
           columnWrapperStyle={{

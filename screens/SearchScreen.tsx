@@ -371,6 +371,7 @@ const styles = StyleSheet.create({
 export default function SearchScreen() {
   const navigation = useNavigation();
   const [query, setQuery] = useState("");
+  const [selectedGenreId, setSelectedGenreId] = useState<number | null>(null); // NOVO ESTADO AQUI
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(true);
 
@@ -378,7 +379,7 @@ export default function SearchScreen() {
   const currentProfile = user?.currentProfileId;
 
   // Hook de busca
-  const { data: searchResults, isLoading, error, refetch } = useSearchMovies(query);
+  const { data: searchResults, isLoading, error, refetch } = useSearchMovies(query, selectedGenreId);
 
   // Carregar histórico de pesquisa
   useEffect(() => {
@@ -447,36 +448,73 @@ export default function SearchScreen() {
     debounce((searchQuery: string) => {
       if (searchQuery.trim().length >= 3) {
         setQuery(searchQuery);
+        setSelectedGenreId(null); // Limpa o gênero selecionado ao digitar
         setShowHistory(false);
         saveSearchToHistory(searchQuery);
       } else if (searchQuery.trim().length === 0) {
         setQuery("");
+        setSelectedGenreId(null); // Limpa o gênero selecionado
         setShowHistory(true);
       }
     }, 500),
-    [searchHistory]
+    [searchHistory] // Dependência para o debounce, se quiser que ele re-crie ao mudar o histórico
   );
 
   const handleHistoryItemPress = (historyQuery: string) => {
-    setQuery(historyQuery);
-    setShowHistory(false);
-    saveSearchToHistory(historyQuery);
+    // Se o item do histórico for um gênero (ex: "gênero:Ação"), você precisa parsear isso
+    if (historyQuery.startsWith("gênero:")) {
+      const genreName = historyQuery.substring("gênero:".length);
+      const genre = POPULAR_GENRES.find(g => g.name === genreName);
+      if (genre) {
+        setQuery(""); // Limpa a query de texto
+        setSelectedGenreId(genre.id); // Define o ID do gênero
+        setShowHistory(false);
+      } else {
+        // Fallback se o gênero não for encontrado na lista de POPULAR_GENRES
+        setQuery(historyQuery);
+        setSelectedGenreId(null);
+        setShowHistory(false);
+      }
+    } else {
+      setQuery(historyQuery);
+      setSelectedGenreId(null);
+      setShowHistory(false);
+    }
+    saveSearchToHistory(historyQuery); // Salva novamente para atualizar o timestamp
   };
 
   const handleGenrePress = (genre: PopularGenre) => {
-    const genreQuery = `gênero:${genre.name}`;
-    setQuery(genreQuery);
+    setQuery(""); // Limpa qualquer texto digitado para focar na busca por gênero
+    setSelectedGenreId(genre.id); // Define o ID do gênero
     setShowHistory(false);
-    saveSearchToHistory(genreQuery);
+    saveSearchToHistory(`gênero:${genre.name}`); // Salva no histórico para legibilidade
   };
 
   const handleClearSearch = () => {
     setQuery("");
+    setSelectedGenreId(null); // Limpa o gênero selecionado também
     setShowHistory(true);
   };
 
-  const handleMoviePress = (movie: any) => {
-    navigation.navigate("Movie");
+  const handleMoviePress = (item: any) => {
+    if (item && item.id) {
+      // AQUI é onde você precisa passar os parâmetros.
+      // Use 'movieId' como chave para o ID, como já havíamos acordado,
+      // pois sua MovieScreen espera 'id' nos parâmetros.
+      navigation.navigate("Movie", {
+        id: item.id, // <-- MUITO IMPORTANTE: passe o ID aqui como 'id'
+        title: item.title,
+        poster_path: item.poster_path,
+      });
+      console.log('DEBUG SearchScreen - Navegando para Movie com ID:', item.id, 'e título:', item.title);
+    } else {
+      console.warn('DEBUG SearchScreen - Filme selecionado sem ID válido:', item);
+      Toast.show({
+          type: 'error',
+          text1: 'Erro ao abrir filme',
+          text2: 'Dados do filme incompletos. Tente outro.'
+      });
+    }
   };
 
   const formatTimeAgo = (timestamp: number) => {
@@ -521,7 +559,7 @@ export default function SearchScreen() {
     </TouchableWithoutFeedback>
   );
 
-  const showResults = query.length >= 3 && !showHistory;
+  const showResults = (query.length >= 3 || selectedGenreId !== null) && !showHistory;
   const hasResults = searchResults?.results?.length > 0;
 
   return (

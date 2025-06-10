@@ -17,7 +17,6 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-
 import Cast from "../components/cast";
 import MovieList from "../components/movieList";
 import AppLayout from "../components/AppLayout";
@@ -481,13 +480,15 @@ const MovieScreen = () => {
   const handleWatchTrailer = () => {
     const movieTitle = movie?.title || title || "filme";
     const searchQuery = `${movieTitle} trailer oficial`;
-    const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
+    // CORREÇÃO: Usar a URL de busca do YouTube correta
+    const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
 
-    Linking.openURL(youtubeUrl).catch(() => {
+    Linking.openURL(youtubeSearchUrl).catch((err) => {
+      console.error("Erro ao abrir YouTube para trailer:", err);
       Toast.show({
         type: "error",
         text1: "Erro",
-        text2: "Não foi possível abrir o YouTube"
+        text2: "Não foi possível abrir o YouTube para o trailer."
       });
     });
   };
@@ -495,13 +496,22 @@ const MovieScreen = () => {
   const handleWatchMovie = () => {
     const movieTitle = movie?.title || title || "filme";
     const searchQuery = `${movieTitle} filme completo`;
-    const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
+    // CORREÇÃO: Apenas monte a URL e passe para o PlayerScreen, sem abrir o YouTube aqui.
+    // Seu PlayerScreen precisará saber como lidar com essa URL (ex: usar um WebView)
+    const youtubeSearchUrlForPlayer = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
 
     navigation.navigate("PlayerScreen" as never, {
-      videoUrl: youtubeUrl,
+      videoUrl: youtubeSearchUrlForPlayer, // Passando a URL de busca do YouTube para o PlayerScreen
       title: movieTitle,
       type: 'movie'
     } as never);
+
+    // Opcional: Um toast para informar o usuário sobre a origem do link
+    Toast.show({
+      type: "info",
+      text1: "Redirecionando para o player",
+      text2: "Este player tentará buscar o filme completo no YouTube."
+    });
   };
 
   const handleRefresh = async () => {
@@ -545,15 +555,14 @@ const MovieScreen = () => {
   };
 
   const getImageSource = () => {
-    if (movie?.backdrop_path) {
-      return imageOriginal(movie.backdrop_path);
-    } else if (movie?.poster_path) {
-      return image500(movie.poster_path);
-    } else if (poster_path) {
-      return image500(poster_path);
-    } else {
-      return fallBackMoviePoster;
+    const path = movie?.poster_path;
+
+    if (typeof path === 'string') {
+      return { uri: `https://image.tmdb.org/t/p/w500${path}` };
     }
+
+    // Fallback se não for uma string válida
+    return require('../assets/images/MovieError.png');
   };
 
   if (isLoading) {
@@ -623,6 +632,9 @@ const MovieScreen = () => {
     );
   }
 
+const imageSource = getImageSource();
+console.log('DEBUG imageSource:', imageSource);
+
   return (
     <AppLayout>
       <ScrollView
@@ -640,23 +652,35 @@ const MovieScreen = () => {
       >
         {/* Header com Poster */}
         <View style={styles.headerContainer}>
+          {/* Poster */}
           <Image
-            source={{
-              uri: getImageSource(),
-            }}
-            style={styles.moviePoster}
+            source={getImageSource()} // Usando a função
+            style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
           />
 
-          {/* Gradientes */}
+          {/* Gradiente superior */}
           <LinearGradient
             colors={['rgba(0,0,0,0.8)', 'transparent']}
-            style={styles.headerGradient}
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(17,24,39,0.8)', '#111827']}
-            style={styles.bottomGradient}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 100,
+            }}
           />
 
+          {/* Gradiente inferior cobrindo a parte de baixo da imagem */}
+          <LinearGradient
+            colors={['transparent', 'rgba(17,24,39,0.8)', '#111827']}
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 150, // aumente se quiser um efeito mais suave
+            }}
+          />
           {/* Controles do Header */}
           <View style={styles.headerControls}>
             <TouchableOpacity
@@ -897,7 +921,6 @@ const MovieScreen = () => {
         {similar?.results?.length > 0 && (
           <MovieList
             title="🎬 Filmes Similares"
-            data={similar.results}
             hiddenSeeAll={false}
             navigation={navigation}
             onSeeAll={() => {

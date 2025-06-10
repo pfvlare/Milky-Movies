@@ -18,7 +18,9 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import MovieList from "../components/movieList";
 import AppLayout from "../components/AppLayout";
-import { image342, fallBackPersonImage, usePersonDetails, usePersonMovieCredits } from "../hooks/useMovies";
+// Mude a importação para o moviedb.js (se for onde estão as funções de imagem e fallbacks)
+import { image342, fallBackPersonImage } from '../api/moviedb'; // Ajuste o caminho se necessário
+import { usePersonDetails, usePersonMovieCredits } from "../hooks/useMovies"; // Hooks de dados ficam aqui
 import Toast from "react-native-toast-message";
 
 const { width, height } = Dimensions.get("window");
@@ -361,6 +363,12 @@ export default function PersonScreen() {
   const isLoading = personLoading || moviesLoading;
   const hasError = personError || moviesError;
 
+  // *** AQUI É ONDE VAMOS USAR A LÓGICA CORRETA ***
+  const sourceForPersonImage = person?.profile_path
+    ? { uri: image342(person.profile_path) } // Usa image342 do moviedb.js
+    : fallBackPersonImage; // Usa fallBackPersonImage do moviedb.js
+
+
   // Dados processados
   const movies = movieCredits?.cast || [];
   const knownFor = movies.slice(0, 10); // Top 10 filmes mais conhecidos
@@ -500,6 +508,10 @@ export default function PersonScreen() {
     );
   }
 
+  console.log('DEBUG person object:', person);
+  console.log('DEBUG person.profile_path:', person?.profile_path, typeof person?.profile_path);
+  console.log('DEBUG sourceForPersonImage:', sourceForPersonImage); // Adicione este log para depurar
+
   return (
     <AppLayout>
       <SafeAreaView style={styles.container}>
@@ -539,13 +551,10 @@ export default function PersonScreen() {
           <View style={styles.heroSection}>
             <View style={styles.profileImageContainer}>
               <View style={styles.profileImageWrapper}>
+                {/* *** CORREÇÃO AQUI: USAR sourceForPersonImage *** */}
                 <Image
-                  source={
-                    person?.profile_path
-                      ? { uri: image342(person.profile_path) }
-                      : fallBackPersonImage
-                  }
-                  style={styles.profileImage}
+                  source={sourceForPersonImage}
+                  style={styles.profileImage} // Use o estilo definido no StyleSheet
                 />
               </View>
               {person?.popularity > 10 && (

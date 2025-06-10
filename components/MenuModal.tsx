@@ -619,15 +619,16 @@ const MenuModal: React.FC<MenuModalProps> = ({ visible, onClose, navigation }) =
                 <View style={styles.subscriptionInfo}>
                   <Text style={styles.subscriptionTitle}>Sua Assinatura</Text>
                   <Text style={styles.subscriptionText}>
-                    Plano: {getPlanDisplayName(subscription.plan)}
+                    {`Plano: ${getPlanDisplayName(subscription.plan)}`}
                   </Text>
                   <Text style={styles.subscriptionText}>
-                    Valor: <Text style={styles.subscriptionValue}>
-                      R$ {subscription.value.toFixed(2).replace('.', ',')}/mês
+                    {`Valor: `}
+                    <Text style={styles.subscriptionValue}>
+                      {`R$ ${subscription.value.toFixed(2).replace('.', ',')}/mês`}
                     </Text>
                   </Text>
                   <Text style={styles.subscriptionText}>
-                    Expira em: {new Date(subscription.expiresAt).toLocaleDateString('pt-BR')}
+                    {`Expira em: ${new Date(subscription.expiresAt).toLocaleDateString('pt-BR')}`}
                   </Text>
                 </View>
               )}
